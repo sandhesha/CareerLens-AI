@@ -23,3 +23,14 @@ backend/uploads/*
 # OS
 .DS_Store
 Thumbs.db
+.vercel
+
+node_modules/
+dist/
+.venv/
+backend/.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+.vercel/
