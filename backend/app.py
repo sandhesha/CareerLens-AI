@@ -15,7 +15,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://careerlensai-sandhesha.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -23,7 +22,16 @@ app.add_middleware(
 )
 
 
+# Resume API
 app.include_router(resume_router)
+
+
+@app.get("/api/health")
+def health_check():
+    return {
+        "status": "ok",
+        "message": "CareerLens AI API is running",
+    }
 
 
 @app.get("/")

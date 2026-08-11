@@ -1,4 +1,4 @@
-const API_URL = "/api";
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 export async function uploadResume(file: File) {
   const formData = new FormData();
@@ -6,26 +6,18 @@ export async function uploadResume(file: File) {
   formData.append("file", file);
 
   const response = await fetch(
-    `${API_URL}/resume/upload`,
+    `${API_BASE_URL}/api/resume/upload`,
     {
       method: "POST",
       body: formData,
     }
   );
 
-  let data: any;
-
-  try {
-    data = await response.json();
-  } catch {
-    throw new Error(
-      `Server returned ${response.status} ${response.statusText}`
-    );
-  }
+  const data = await response.json();
 
   if (!response.ok) {
     throw new Error(
-      data?.detail || "Resume upload failed."
+      data.detail || `Upload failed with status ${response.status}`
     );
   }
 

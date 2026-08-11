@@ -14,6 +14,11 @@ import { uploadResume } from "../services/api";
 
 interface ResumeAnalyzerProps {
   onBack?: () => void;
+  onAnalysisComplete?: (
+    score: number,
+    skills: number,
+    jobs: number
+  ) => void;
 }
 
 interface ResumeResult {

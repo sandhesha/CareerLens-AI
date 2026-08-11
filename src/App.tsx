@@ -32,62 +32,84 @@ function App() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [resumeScore, setResumeScore] = useState(() => {
-    return Number(localStorage.getItem("resumeScore")) || 0;
-  });
-
-  const [jobMatches, setJobMatches] = useState(() => {
-    return Number(localStorage.getItem("jobMatches")) || 0;
-  });
-
-  const [interviewScore, setInterviewScore] = useState(() => {
-    return Number(localStorage.getItem("interviewScore")) || 0;
-  });
-
-  const [skillsMatched, setSkillsMatched] = useState(() => {
-    return Number(localStorage.getItem("skillsMatched")) || 0;
-  });
+  const [resumeScore, setResumeScore] = useState(0);
+const [jobMatches, setJobMatches] = useState(0);
+const [interviewScore, setInterviewScore] = useState(0);
+const [skillsMatched, setSkillsMatched] = useState(0);
 
   // =========================
-  // UPDATE DASHBOARD
+  // CLEAR DATA ONLY ON
+  // ACTUAL BROWSER REFRESH
   // =========================
 
   useEffect(() => {
-    const updateDashboard = () => {
-      setResumeScore(
-        Number(localStorage.getItem("resumeScore")) || 0
-      );
+  const navigationEntry = performance.getEntriesByType(
+    "navigation"
+  )[0] as PerformanceNavigationTiming;
 
-      setJobMatches(
-        Number(localStorage.getItem("jobMatches")) || 0
-      );
+  if (navigationEntry?.type === "reload") {
+    localStorage.removeItem("resumeText");
+    localStorage.removeItem("resumeFileName");
+    localStorage.removeItem("resumeScore");
+    localStorage.removeItem("skillsMatched");
+    localStorage.removeItem("jobMatches");
+    localStorage.removeItem("interviewScore");
 
-      setInterviewScore(
-        Number(localStorage.getItem("interviewScore")) || 0
-      );
+    setResumeScore(0);
+    setJobMatches(0);
+    setInterviewScore(0);
+    setSkillsMatched(0);
+  }
 
-      setSkillsMatched(
-        Number(localStorage.getItem("skillsMatched")) || 0
-      );
-    };
+  const updateDashboard = () => {
+    setResumeScore(
+      Number(localStorage.getItem("resumeScore")) || 0
+    );
 
-    window.addEventListener(
+    setJobMatches(
+      Number(localStorage.getItem("jobMatches")) || 0
+    );
+
+    setInterviewScore(
+      Number(localStorage.getItem("interviewScore")) || 0
+    );
+
+    setSkillsMatched(
+      Number(localStorage.getItem("skillsMatched")) || 0
+    );
+  };
+
+  window.addEventListener(
+    "careerlens-dashboard-update",
+    updateDashboard
+  );
+
+  return () => {
+    window.removeEventListener(
       "careerlens-dashboard-update",
       updateDashboard
     );
+  };
+}, []);
 
-    return () => {
-      window.removeEventListener(
-        "careerlens-dashboard-update",
-        updateDashboard
-      );
-    };
-  }, []);
 
-  // =========================
-  // NAVIGATION
-  // =========================
+useEffect(() => {
+  const startInterview = () => {
+    setActivePage("AI Interview");
+  };
 
+  window.addEventListener(
+    "start-careerlens-interview",
+    startInterview
+  );
+
+  return () => {
+    window.removeEventListener(
+      "start-careerlens-interview",
+      startInterview
+    );
+  };
+}, []);
   const navigation = [
     {
       name: "Dashboard",
@@ -115,13 +137,18 @@ function App() {
   // PAGE ROUTING
   // =========================
 
-  if (activePage === "Resume Analyzer") {
-    return (
-      <ResumeAnalyzer
-        onBack={() => setActivePage("Dashboard")}
-      />
-    );
-  }
+ if (activePage === "Resume Analyzer") {
+  return (
+    <ResumeAnalyzer
+      onBack={() => setActivePage("Dashboard")}
+      onAnalysisComplete={(score, skills, jobs) => {
+        setResumeScore(score);
+        setSkillsMatched(skills);
+        setJobMatches(jobs);
+      }}
+    />
+  );
+}
 
   if (activePage === "Job Matching") {
     return (
@@ -132,12 +159,15 @@ function App() {
   }
 
   if (activePage === "AI Interview") {
-    return (
-      <Interview
-        onBack={() => setActivePage("Dashboard")}
-      />
-    );
-  }
+  return (
+    <Interview
+      onBack={() => setActivePage("Dashboard")}
+      onInterviewComplete={(score) => {
+        setInterviewScore(score);
+      }}
+    />
+  );
+}
 
   if (activePage === "Career Roadmap") {
     return (
@@ -323,6 +353,7 @@ function App() {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
+
                   <Icon size={19} />
 
                   <span>{item.name}</span>
@@ -330,6 +361,7 @@ function App() {
                   {active && (
                     <span className="ml-auto h-2 w-2 rounded-full bg-blue-600" />
                   )}
+
                 </button>
               );
             })}
@@ -741,9 +773,11 @@ function App() {
                     </span>
 
                     <p className="text-xs leading-5 text-amber-800">
+
                       {resumeScore > 0
                         ? "Add more measurable achievements to your project descriptions to improve your score."
                         : "Upload your resume to get personalized AI analysis."}
+
                     </p>
 
                   </div>

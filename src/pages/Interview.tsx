@@ -11,7 +11,9 @@ import {
 
 interface InterviewProps {
   onBack?: () => void;
+  onInterviewComplete?: (score: number) => void;
 }
+
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -47,19 +49,22 @@ declare global {
   }
 }
 
+/* =====================================================
+   INTERVIEW QUESTIONS
+===================================================== */
+
 const questions = [
   {
     type: "Introduction",
-    question:
-      "Tell me about yourself and your background.",
+    question: "Tell me about yourself and your background.",
   },
   {
-    type: "Experience",
+    type: "Resume Experience",
     question:
       "Can you describe one important project or experience from your resume?",
   },
   {
-    type: "Technical",
+    type: "Technical Skills",
     question:
       "What are your strongest technical skills, and how have you used them in your projects?",
   },
@@ -69,28 +74,366 @@ const questions = [
       "Tell me about a difficult problem you faced in a project and how you solved it.",
   },
   {
-    type: "HR",
+    type: "Career & Resume",
     question:
-      "Why should we hire you for this position?",
+      "Why should we hire you based on the skills and experience shown in your resume?",
   },
 ];
 
+/* =====================================================
+   STOP WORDS
+===================================================== */
+
+const STOP_WORDS = new Set([
+  "this",
+  "that",
+  "with",
+  "from",
+  "your",
+  "have",
+  "will",
+  "using",
+  "into",
+  "been",
+  "were",
+  "they",
+  "their",
+  "about",
+  "which",
+  "where",
+  "when",
+  "what",
+  "there",
+  "also",
+  "then",
+  "than",
+  "them",
+  "very",
+  "some",
+  "more",
+  "such",
+  "only",
+  "would",
+  "could",
+  "should",
+  "because",
+  "while",
+  "after",
+  "before",
+  "project",
+  "experience",
+  "skills",
+  "resume",
+]);
+
+/* =====================================================
+   TECHNICAL KEYWORDS
+===================================================== */
+
+const TECHNICAL_KEYWORDS = [
+  "python",
+  "java",
+  "javascript",
+  "typescript",
+  "react",
+  "reactjs",
+  "node",
+  "nodejs",
+  "html",
+  "css",
+  "sql",
+  "mongodb",
+  "mysql",
+  "postgresql",
+  "machine learning",
+  "deep learning",
+  "artificial intelligence",
+  "ai",
+  "data science",
+  "pandas",
+  "numpy",
+  "tensorflow",
+  "pytorch",
+  "git",
+  "github",
+  "aws",
+  "azure",
+  "docker",
+  "fastapi",
+  "flask",
+  "power bi",
+  "tableau",
+  "excel",
+  "api",
+  "frontend",
+  "backend",
+  "full stack",
+  "tailwind",
+  "vite",
+  "nextjs",
+];
+
+/* =====================================================
+   TEXT HELPERS
+===================================================== */
+
+const normalizeText = (text: string) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s+#.-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const getWords = (text: string) => {
+  return normalizeText(text)
+    .split(" ")
+    .filter(
+      (word) =>
+        word.length >= 4 &&
+        !STOP_WORDS.has(word)
+    );
+};
+
+const unique = (items: string[]) => [
+  ...new Set(items),
+];
+
+/* =====================================================
+   ANSWER EVALUATION
+===================================================== */
+
+const evaluateAnswer = (
+  answerText: string,
+  questionIndex: number,
+  resumeText: string
+) => {
+  /*
+   * Introduction is not scored.
+   */
+  if (questionIndex === 0) {
+    return 0;
+  }
+
+  const answer = normalizeText(answerText);
+  const resume = normalizeText(resumeText);
+
+  if (!answer) {
+    return 0;
+  }
+
+  const answerWords = unique(getWords(answer));
+  const resumeWords = unique(getWords(resume));
+
+  const wordCount = answerWords.length;
+
+  /*
+   * ---------------------------------------------------
+   * 1. ANSWER COMPLETENESS - 5 MARKS
+   * ---------------------------------------------------
+   */
+
+  let completenessScore = 0;
+
+  if (wordCount >= 10) {
+    completenessScore += 1;
+  }
+
+  if (wordCount >= 20) {
+    completenessScore += 1;
+  }
+
+  if (wordCount >= 35) {
+    completenessScore += 1;
+  }
+
+  if (wordCount >= 50) {
+    completenessScore += 1;
+  }
+
+  if (wordCount >= 70) {
+    completenessScore += 1;
+  }
+
+  /*
+   * ---------------------------------------------------
+   * 2. RESUME RELEVANCE - 8 MARKS
+   * ---------------------------------------------------
+   */
+
+  const matchedResumeWords = answerWords.filter(
+    (word) =>
+      resume.includes(` ${word} `) ||
+      resume.includes(word)
+  );
+
+  const uniqueMatchedResumeWords =
+    unique(matchedResumeWords);
+
+  let resumeRelevanceScore = 0;
+
+  if (uniqueMatchedResumeWords.length >= 1) {
+    resumeRelevanceScore += 2;
+  }
+
+  if (uniqueMatchedResumeWords.length >= 3) {
+    resumeRelevanceScore += 2;
+  }
+
+  if (uniqueMatchedResumeWords.length >= 6) {
+    resumeRelevanceScore += 2;
+  }
+
+  if (uniqueMatchedResumeWords.length >= 10) {
+    resumeRelevanceScore += 2;
+  }
+
+  /*
+   * ---------------------------------------------------
+   * 3. TECHNICAL RELEVANCE - 6 MARKS
+   * ---------------------------------------------------
+   */
+
+  const resumeTechnicalSkills =
+    TECHNICAL_KEYWORDS.filter((skill) =>
+      resume.includes(skill)
+    );
+
+  const answerTechnicalSkills =
+    resumeTechnicalSkills.filter((skill) =>
+      answer.includes(skill)
+    );
+
+  let technicalScore = 0;
+
+  if (answerTechnicalSkills.length >= 1) {
+    technicalScore += 2;
+  }
+
+  if (answerTechnicalSkills.length >= 2) {
+    technicalScore += 2;
+  }
+
+  if (answerTechnicalSkills.length >= 3) {
+    technicalScore += 2;
+  }
+
+  /*
+   * ---------------------------------------------------
+   * 4. ANSWER QUALITY - 6 MARKS
+   * ---------------------------------------------------
+   *
+   * Look for explanation words that indicate
+   * the candidate actually explained their answer.
+   */
+
+  const explanationWords = [
+    "because",
+    "therefore",
+    "implemented",
+    "developed",
+    "created",
+    "designed",
+    "built",
+    "solved",
+    "improved",
+    "achieved",
+    "learned",
+    "used",
+    "worked",
+    "handled",
+    "managed",
+    "result",
+    "resulted",
+    "increased",
+    "reduced",
+  ];
+
+  const matchedExplanationWords =
+    explanationWords.filter((word) =>
+      answer.includes(word)
+    );
+
+  let qualityScore = 0;
+
+  if (matchedExplanationWords.length >= 1) {
+    qualityScore += 2;
+  }
+
+  if (matchedExplanationWords.length >= 2) {
+    qualityScore += 2;
+  }
+
+  if (matchedExplanationWords.length >= 4) {
+    qualityScore += 2;
+  }
+
+  /*
+   * ---------------------------------------------------
+   * FINAL SCORE
+   * ---------------------------------------------------
+   */
+
+  const finalQuestionScore =
+    completenessScore +
+    resumeRelevanceScore +
+    technicalScore +
+    qualityScore;
+
+  return Math.min(finalQuestionScore, 25);
+};
+
+/* =====================================================
+   COMPONENT
+===================================================== */
+
 function Interview({ onBack }: InterviewProps) {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
+  const [currentQuestion, setCurrentQuestion] =
+    useState(0);
+
+  const [isRecording, setIsRecording] =
+    useState(false);
+
   const [answer, setAnswer] = useState("");
+
   const [time, setTime] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
-  const [completed, setCompleted] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(true);
+
+  const [submitted, setSubmitted] =
+    useState(false);
+
+  const [completed, setCompleted] =
+    useState(false);
+
+  const [questionScores, setQuestionScores] =
+    useState<number[]>([]);
+
+  const [finalScore, setFinalScore] =
+    useState(0);
+
+  const [speechSupported, setSpeechSupported] =
+    useState(true);
 
   const recognitionRef =
     useRef<SpeechRecognitionInstance | null>(null);
 
   const timerRef =
-    useRef<ReturnType<typeof setInterval> | null>(null);
+    useRef<ReturnType<typeof setInterval> | null>(
+      null
+    );
 
-  const questionData = questions[currentQuestion];
+  const questionData =
+    questions[currentQuestion];
+
+  /*
+   * Get resume uploaded by Resume Analyzer.
+   */
+
+  const resumeText =
+    localStorage.getItem("resumeText") || "";
+
+  /* =====================================================
+     SPEECH RECOGNITION
+  ===================================================== */
 
   useEffect(() => {
     const SpeechRecognition =
@@ -102,7 +445,8 @@ function Interview({ onBack }: InterviewProps) {
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition =
+      new SpeechRecognition();
 
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -116,10 +460,11 @@ function Interview({ onBack }: InterviewProps) {
         i < event.results.length;
         i++
       ) {
-        transcript += event.results[i][0].transcript;
+        transcript +=
+          event.results[i][0].transcript + " ";
       }
 
-      setAnswer(transcript);
+      setAnswer(transcript.trim());
     };
 
     recognition.onerror = () => {
@@ -151,6 +496,10 @@ function Interview({ onBack }: InterviewProps) {
     };
   }, []);
 
+  /* =====================================================
+     START RECORDING
+  ===================================================== */
+
   const startRecording = () => {
     if (!recognitionRef.current) {
       return;
@@ -166,12 +515,20 @@ function Interview({ onBack }: InterviewProps) {
       setIsRecording(true);
 
       timerRef.current = setInterval(() => {
-        setTime((previous) => previous + 1);
+        setTime(
+          (previous) => previous + 1
+        );
       }, 1000);
-    } catch (error) {
-      console.log("Recording already started.");
+    } catch {
+      console.log(
+        "Recording already started."
+      );
     }
   };
+
+  /* =====================================================
+     STOP RECORDING
+  ===================================================== */
 
   const stopRecording = () => {
     recognitionRef.current?.stop();
@@ -184,27 +541,121 @@ function Interview({ onBack }: InterviewProps) {
     }
   };
 
+  /* =====================================================
+     SUBMIT ANSWER
+  ===================================================== */
+
   const submitAnswer = () => {
     if (!answer.trim()) {
       return;
     }
 
     stopRecording();
+
+    const score = evaluateAnswer(
+      answer,
+      currentQuestion,
+      resumeText
+    );
+
+    setQuestionScores((previous) => {
+      const updated = [...previous];
+
+      updated[currentQuestion] = score;
+
+      return updated;
+    });
+
     setSubmitted(true);
   };
 
+  /* =====================================================
+     NEXT QUESTION
+  ===================================================== */
+
   const nextQuestion = () => {
-    if (currentQuestion === questions.length - 1) {
+    /*
+     * Final question
+     */
+
+    if (
+      currentQuestion ===
+      questions.length - 1
+    ) {
+      const scores = [...questionScores];
+
+      /*
+       * Make sure the latest answer is included.
+       */
+
+      scores[currentQuestion] =
+        evaluateAnswer(
+          answer,
+          currentQuestion,
+          resumeText
+        );
+
+      /*
+       * Q1 is introduction.
+       * Q2-Q5 = actual scored questions.
+       */
+
+      const totalScore = scores
+        .slice(1, 5)
+        .reduce(
+          (total, score) =>
+            total + (score || 0),
+          0
+        );
+
+      /*
+       * Maximum = 100.
+       */
+
+      setQuestionScores(scores);
+
+      setFinalScore(totalScore);
+
+      /*
+       * Save actual score to dashboard.
+       */
+
+      localStorage.setItem(
+        "interviewScore",
+        totalScore.toString()
+      );
+
+      /*
+       * Notify dashboard.
+       */
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "careerlens-dashboard-update"
+        )
+      );
+
       setCompleted(true);
+
       return;
     }
 
-    setCurrentQuestion((previous) => previous + 1);
+    /*
+     * Move to next question.
+     */
+
+    setCurrentQuestion(
+      (previous) => previous + 1
+    );
 
     setAnswer("");
     setTime(0);
     setSubmitted(false);
   };
+
+  /* =====================================================
+     SPEAK QUESTION
+  ===================================================== */
 
   const speakQuestion = () => {
     if (!("speechSynthesis" in window)) {
@@ -221,21 +672,42 @@ function Interview({ onBack }: InterviewProps) {
     speech.lang = "en-US";
     speech.rate = 0.95;
 
-    window.speechSynthesis.speak(speech);
+    window.speechSynthesis.speak(
+      speech
+    );
   };
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
+  /* =====================================================
+     FORMAT TIME
+  ===================================================== */
 
-    const remainingSeconds = seconds % 60;
+  const formatTime = (
+    seconds: number
+  ) => {
+    const minutes = Math.floor(
+      seconds / 60
+    );
+
+    const remainingSeconds =
+      seconds % 60;
 
     return `${minutes}:${remainingSeconds
       .toString()
       .padStart(2, "0")}`;
   };
 
+  /* =====================================================
+     PROGRESS
+  ===================================================== */
+
   const progress =
-    ((currentQuestion + 1) / questions.length) * 100;
+    ((currentQuestion + 1) /
+      questions.length) *
+    100;
+
+  /* =====================================================
+     COMPLETED SCREEN
+  ===================================================== */
 
   if (completed) {
     return (
@@ -268,54 +740,113 @@ function Interview({ onBack }: InterviewProps) {
             </h1>
 
             <p className="mx-auto mt-4 max-w-xl leading-7 text-slate-400">
-              You completed all the interview questions.
-              Your responses are ready for AI evaluation.
+              Your score was calculated from
+              the actual answers you provided
+              during the interview.
             </p>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {/* FINAL SCORE */}
 
-              <div className="rounded-2xl bg-slate-800 p-5">
-                <p className="text-sm text-slate-400">
-                  Questions
-                </p>
-                <p className="mt-2 text-3xl font-bold">
-                  {questions.length}
-                </p>
-              </div>
+            <div className="mx-auto mt-8 max-w-sm rounded-3xl border border-blue-500/20 bg-blue-500/10 p-8">
 
-              <div className="rounded-2xl bg-slate-800 p-5">
-                <p className="text-sm text-slate-400">
-                  Voice Answers
-                </p>
-                <p className="mt-2 text-3xl font-bold text-blue-400">
-                  {questions.length}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-slate-400">
+                Your Interview Score
+              </p>
 
-              <div className="rounded-2xl bg-slate-800 p-5">
-                <p className="text-sm text-slate-400">
-                  Status
-                </p>
-                <p className="mt-2 text-xl font-bold text-green-400">
-                  Completed
-                </p>
-              </div>
+              <p className="mt-3 text-6xl font-bold text-blue-400">
+                {finalScore}%
+              </p>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Maximum 100 points
+              </p>
 
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentQuestion(0);
-                setAnswer("");
-                setTime(0);
-                setSubmitted(false);
-                setCompleted(false);
-              }}
-              className="mt-8 rounded-xl bg-blue-600 px-7 py-3 font-semibold transition hover:bg-blue-500"
-            >
-              Restart Interview
-            </button>
+            {/* QUESTION SCORES */}
+
+            <div className="mt-8 space-y-3 text-left">
+
+              {questions.map(
+                (question, index) => (
+                  <div
+                    key={question.type}
+                    className="flex items-center justify-between rounded-xl bg-slate-800 p-4"
+                  >
+
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Question {index + 1}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {question.type}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+
+                      {index === 0 ? (
+                        <span className="text-sm text-slate-500">
+                          Not scored
+                        </span>
+                      ) : (
+                        <span className="text-lg font-bold text-green-400">
+                          {questionScores[index] || 0}/25
+                        </span>
+                      )}
+
+                    </div>
+
+                  </div>
+                )
+              )}
+
+            </div>
+
+            {/* BUTTONS */}
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 py-3 font-semibold transition hover:bg-blue-500"
+                >
+                  Back to Dashboard
+                  <FiArrowRight size={17} />
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentQuestion(0);
+                  setAnswer("");
+                  setTime(0);
+                  setSubmitted(false);
+                  setCompleted(false);
+                  setQuestionScores([]);
+                  setFinalScore(0);
+
+                  localStorage.setItem(
+                    "interviewScore",
+                    "0"
+                  );
+
+                  window.dispatchEvent(
+                    new CustomEvent(
+                      "careerlens-dashboard-update"
+                    )
+                  );
+                }}
+                className="rounded-xl border border-slate-700 px-7 py-3 font-semibold text-slate-300 transition hover:bg-slate-800"
+              >
+                Restart Interview
+              </button>
+
+            </div>
 
           </div>
         </div>
@@ -323,12 +854,15 @@ function Interview({ onBack }: InterviewProps) {
     );
   }
 
+  /* =====================================================
+     INTERVIEW SCREEN
+  ===================================================== */
+
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
 
       <div className="mx-auto max-w-5xl">
 
-        {/* Back */}
         {onBack && (
           <button
             type="button"
@@ -340,7 +874,8 @@ function Interview({ onBack }: InterviewProps) {
           </button>
         )}
 
-        {/* Header */}
+        {/* HEADER */}
+
         <div className="mb-8">
 
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-2 text-sm text-blue-300">
@@ -355,34 +890,53 @@ function Interview({ onBack }: InterviewProps) {
           <p className="mt-2 text-slate-400">
             Answer every question using your voice.
           </p>
+
+          {!resumeText && (
+            <div className="mt-4 rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-sm text-yellow-300">
+              No resume has been uploaded.
+              Resume-related questions cannot
+              be evaluated accurately.
+            </div>
+          )}
+
         </div>
 
-        {/* Progress */}
+        {/* PROGRESS */}
+
         <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
           <div className="mb-3 flex items-center justify-between text-sm">
+
             <span className="text-slate-400">
               Interview Progress
             </span>
 
             <span className="font-semibold text-white">
-              {currentQuestion + 1} / {questions.length}
+              {currentQuestion + 1} /{" "}
+              {questions.length}
             </span>
+
           </div>
 
           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+
             <div
               className="h-full rounded-full bg-blue-500 transition-all duration-500"
-              style={{ width: `${progress}%` }}
+              style={{
+                width: `${progress}%`,
+              }}
             />
+
           </div>
 
         </div>
 
-        {/* Main Card */}
+        {/* MAIN CARD */}
+
         <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8">
 
-          {/* Question Header */}
+          {/* QUESTION */}
+
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
 
             <div>
@@ -394,6 +948,24 @@ function Interview({ onBack }: InterviewProps) {
               <h2 className="max-w-3xl text-2xl font-semibold leading-relaxed sm:text-3xl">
                 {questionData.question}
               </h2>
+
+              {currentQuestion === 0 && (
+                <p className="mt-3 text-xs text-slate-500">
+                  Introduction question —
+                  this answer will not affect
+                  your interview score.
+                </p>
+              )}
+
+              {currentQuestion > 0 && (
+                <p className="mt-3 text-xs text-blue-400">
+                  This answer will be evaluated
+                  based on its relevance,
+                  completeness and connection
+                  to your uploaded resume.
+                  Maximum: 25 marks.
+                </p>
+              )}
 
             </div>
 
@@ -408,7 +980,8 @@ function Interview({ onBack }: InterviewProps) {
 
           </div>
 
-          {/* Timer */}
+          {/* TIMER */}
+
           <div className="mt-8 flex justify-center">
 
             <div className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-5 py-2 text-sm text-slate-300">
@@ -418,7 +991,8 @@ function Interview({ onBack }: InterviewProps) {
 
           </div>
 
-          {/* Microphone */}
+          {/* MICROPHONE */}
+
           <div className="my-10 flex flex-col items-center">
 
             <button
@@ -466,91 +1040,135 @@ function Interview({ onBack }: InterviewProps) {
 
           </div>
 
-          {/* Browser Warning */}
+          {/* BROWSER WARNING */}
+
           {!speechSupported && (
             <div className="mb-6 rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-center text-sm text-yellow-300">
-              Speech recognition is not supported in this
-              browser.
+              Speech recognition is not
+              supported in this browser.
             </div>
           )}
 
-          {/* Answer */}
+          {/* ANSWER */}
+
           <div>
 
-            <div>
-  <div className="mb-2 flex items-center justify-between">
-    <label className="block text-sm font-medium text-slate-300">
-      Your Answer
-    </label>
+            <div className="mb-2 flex items-center justify-between">
 
-    <span className="text-xs text-slate-500">
-      Type or speak your answer
-    </span>
-  </div>
+              <label className="block text-sm font-medium text-slate-300">
+                Your Answer
+              </label>
 
-  <textarea
-    value={answer}
-    onChange={(e) => setAnswer(e.target.value)}
-    placeholder="Type your answer here, or tap the microphone and speak..."
-    className="min-h-[180px] w-full resize-none rounded-2xl border border-slate-700 bg-slate-950 p-5 leading-7 text-slate-300 outline-none transition placeholder:text-slate-600 focus:border-blue-500"
-  />
+              <span className="text-xs text-slate-500">
+                Type or speak your answer
+              </span>
 
-  <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-    <FiMic />
-    <span>
-      Voice input automatically appears here
-    </span>
-  </div>
-</div>
+            </div>
+
+            <textarea
+              value={answer}
+              onChange={(e) =>
+                setAnswer(e.target.value)
+              }
+              placeholder="Type your answer here, or tap the microphone and speak..."
+              className="min-h-[180px] w-full resize-none rounded-2xl border border-slate-700 bg-slate-950 p-5 leading-7 text-slate-300 outline-none transition placeholder:text-slate-600 focus:border-blue-500"
+            />
+
+            <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+              <FiMic />
+              <span>
+                Voice input automatically
+                appears here
+              </span>
+            </div>
 
           </div>
 
-          {/* Submit */}
+          {/* SUBMIT */}
+
           {!submitted ? (
+
             <button
               type="button"
               onClick={submitAnswer}
               disabled={
-                !answer.trim() || isRecording
+                !answer.trim() ||
+                isRecording
               }
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-4 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <FiCheckCircle />
               Submit Answer
             </button>
+
           ) : (
+
             <div className="mt-6">
 
-              {/* Demo Evaluation */}
+              {/* EVALUATED */}
+
               <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-5">
 
-                <div className="flex items-center gap-2 text-green-400">
-                  <FiCheckCircle />
-                  <span className="font-semibold">
-                    Answer Recorded
-                  </span>
+                <div className="flex items-center justify-between">
+
+                  <div className="flex items-center gap-2 text-green-400">
+
+                    <FiCheckCircle />
+
+                    <span className="font-semibold">
+                      Answer Evaluated
+                    </span>
+
+                  </div>
+
+                  {currentQuestion === 0 ? (
+
+                    <span className="text-sm text-slate-500">
+                      Not scored
+                    </span>
+
+                  ) : (
+
+                    <span className="text-2xl font-bold text-green-400">
+                      {questionScores[
+                        currentQuestion
+                      ] || 0}
+                      /25
+                    </span>
+
+                  )}
+
                 </div>
 
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Your answer has been recorded. AI evaluation
-                  will be connected in the next stage.
+
+                  {currentQuestion === 0
+                    ? "Your introduction was recorded successfully. This question does not affect your final score."
+                    : "Your score was calculated from the content of your answer, its relevance to your resume, technical relevance and answer completeness."}
+
                 </p>
 
               </div>
+
+              {/* NEXT */}
 
               <button
                 type="button"
                 onClick={nextQuestion}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-4 font-semibold text-white transition hover:bg-blue-500"
               >
-                {currentQuestion === questions.length - 1
+
+                {currentQuestion ===
+                questions.length - 1
                   ? "Finish Interview"
                   : "Next Question"}
 
                 <FiArrowRight />
+
               </button>
 
             </div>
+
           )}
 
         </div>
