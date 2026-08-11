@@ -18,32 +18,43 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/upload")
-async def upload_resume(file: UploadFile = File(...)):
-    # Check file type
+async def upload_resume(
+    file: UploadFile = File(...)
+):
     if file.content_type != "application/pdf":
         raise HTTPException(
             status_code=400,
             detail="Only PDF resumes are supported.",
         )
 
-    # Create a unique filename
     filename = f"{uuid.uuid4()}.pdf"
 
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    file_path = os.path.join(
+        UPLOAD_DIR,
+        filename
+    )
 
     try:
-        # Save uploaded PDF
-        with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+        content = await file.read()
 
-        # Extract text from PDF
-        text = extract_resume_text(file_path)
-
-        if not text:
+        if not content:
             raise HTTPException(
                 status_code=400,
-                detail="Could not extract text from this PDF.",
+                detail="The uploaded file is empty.",
+            )
+
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+
+        text = extract_resume_text(file_path)
+
+        if not text or not text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Could not extract text from this PDF. "
+                    "Please upload a text-based PDF resume."
+                ),
             )
 
         return {
@@ -56,7 +67,10 @@ async def upload_resume(file: UploadFile = File(...)):
         raise
 
     except Exception as error:
-        print("Resume processing error:", error)
+        print(
+            "Resume processing error:",
+            repr(error)
+        )
 
         raise HTTPException(
             status_code=500,
@@ -64,6 +78,8 @@ async def upload_resume(file: UploadFile = File(...)):
         )
 
     finally:
-        # Remove temporary uploaded PDF
         if os.path.exists(file_path):
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass

@@ -1,12 +1,13 @@
+import { useEffect, useState } from "react";
+
 import CareerRoadmap from "./pages/CareerRoadmap";
 import Interview from "./pages/Interview";
 import JobMatching from "./pages/JobMatching";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer";
-import { useState } from "react";
+
 import {
   FiHome,
   FiFileText,
-  FiBriefcase,
   FiTarget,
   FiMic,
   FiMap,
@@ -24,68 +25,169 @@ import {
 } from "react-icons/fi";
 
 function App() {
+  // =========================
+  // STATE
+  // =========================
+
   const [activePage, setActivePage] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  if (activePage === "Resume Analyzer") {
-  return <ResumeAnalyzer onBack={() => setActivePage("Dashboard")} />;
-}
-if (activePage === "Job Matching") {
-  return (
-    <JobMatching
-      onBack={() => setActivePage("Dashboard")}
-    />
-  );
-}
-if (activePage === "AI Interview") {
-  return (
-    <Interview
-      onBack={() => setActivePage("Dashboard")}
-    />
-  );
-}
-if (activePage === "Career Roadmap") {
-  return (
-    <CareerRoadmap
-      onBack={() => setActivePage("Dashboard")}
-    />
-  );
-}
+
+  const [resumeScore, setResumeScore] = useState(() => {
+    return Number(localStorage.getItem("resumeScore")) || 0;
+  });
+
+  const [jobMatches, setJobMatches] = useState(() => {
+    return Number(localStorage.getItem("jobMatches")) || 0;
+  });
+
+  const [interviewScore, setInterviewScore] = useState(() => {
+    return Number(localStorage.getItem("interviewScore")) || 0;
+  });
+
+  const [skillsMatched, setSkillsMatched] = useState(() => {
+    return Number(localStorage.getItem("skillsMatched")) || 0;
+  });
+
+  // =========================
+  // UPDATE DASHBOARD
+  // =========================
+
+  useEffect(() => {
+    const updateDashboard = () => {
+      setResumeScore(
+        Number(localStorage.getItem("resumeScore")) || 0
+      );
+
+      setJobMatches(
+        Number(localStorage.getItem("jobMatches")) || 0
+      );
+
+      setInterviewScore(
+        Number(localStorage.getItem("interviewScore")) || 0
+      );
+
+      setSkillsMatched(
+        Number(localStorage.getItem("skillsMatched")) || 0
+      );
+    };
+
+    window.addEventListener(
+      "careerlens-dashboard-update",
+      updateDashboard
+    );
+
+    return () => {
+      window.removeEventListener(
+        "careerlens-dashboard-update",
+        updateDashboard
+      );
+    };
+  }, []);
+
+  // =========================
+  // NAVIGATION
+  // =========================
+
   const navigation = [
-    { name: "Dashboard", icon: FiHome },
-    { name: "Resume Analyzer", icon: FiFileText },
-    { name: "Job Matching", icon: FiTarget },
-    { name: "AI Interview", icon: FiMic },
-    { name: "Career Roadmap", icon: FiMap },
+    {
+      name: "Dashboard",
+      icon: FiHome,
+    },
+    {
+      name: "Resume Analyzer",
+      icon: FiFileText,
+    },
+    {
+      name: "Job Matching",
+      icon: FiTarget,
+    },
+    {
+      name: "AI Interview",
+      icon: FiMic,
+    },
+    {
+      name: "Career Roadmap",
+      icon: FiMap,
+    },
   ];
+
+  // =========================
+  // PAGE ROUTING
+  // =========================
+
+  if (activePage === "Resume Analyzer") {
+    return (
+      <ResumeAnalyzer
+        onBack={() => setActivePage("Dashboard")}
+      />
+    );
+  }
+
+  if (activePage === "Job Matching") {
+    return (
+      <JobMatching
+        onBack={() => setActivePage("Dashboard")}
+      />
+    );
+  }
+
+  if (activePage === "AI Interview") {
+    return (
+      <Interview
+        onBack={() => setActivePage("Dashboard")}
+      />
+    );
+  }
+
+  if (activePage === "Career Roadmap") {
+    return (
+      <CareerRoadmap
+        onBack={() => setActivePage("Dashboard")}
+      />
+    );
+  }
+
+  // =========================
+  // DASHBOARD DATA
+  // =========================
 
   const stats = [
     {
       title: "Resume Score",
-      value: "82%",
-      description: "Good profile strength",
+      value: `${resumeScore}%`,
+      description:
+        resumeScore > 0
+          ? "Good profile strength"
+          : "Upload your resume",
       icon: FiFileText,
-      trend: "+8%",
+      trend: resumeScore > 0 ? "+8%" : "",
     },
     {
       title: "Job Matches",
-      value: "24",
+      value: jobMatches.toString(),
       description: "Suitable positions",
       icon: FiTarget,
-      trend: "+12",
+      trend: jobMatches > 0 ? "+12" : "",
     },
     {
       title: "Interview Score",
-      value: "76%",
-      description: "Last practice",
+      value: `${interviewScore}%`,
+      description:
+        interviewScore > 0
+          ? "Last practice"
+          : "No interview yet",
       icon: FiMic,
-      trend: "+6%",
+      trend: interviewScore > 0 ? "+6%" : "",
     },
     {
       title: "Skills Matched",
-      value: "18",
-      description: "Skills identified",
+      value: skillsMatched.toString(),
+      description:
+        skillsMatched > 0
+          ? "Skills identified"
+          : "Upload your resume",
       icon: FiTrendingUp,
-      trend: "+4",
+      trend: skillsMatched > 0 ? "+4" : "",
     },
   ];
 
@@ -135,12 +237,16 @@ if (activePage === "Career Roadmap") {
       icon: FiMap,
     },
   ];
-if (activePage === "Resume Analyzer") {
-  return <ResumeAnalyzer onBack={() => setActivePage("Dashboard")} />;
-}
+
+  // =========================
+  // DASHBOARD
+  // =========================
+
   return (
     <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
-      {/* Mobile overlay */}
+
+      {/* MOBILE OVERLAY */}
+
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
@@ -148,15 +254,22 @@ if (activePage === "Resume Analyzer") {
         />
       )}
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
+
       <aside
         className={`fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
         } lg:translate-x-0`}
       >
-        {/* Logo */}
+
+        {/* LOGO */}
+
         <div className="flex h-20 items-center justify-between border-b border-slate-100 px-6">
+
           <div className="flex items-center gap-3">
+
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-lg font-bold text-white shadow-lg shadow-blue-500/20">
               C
             </div>
@@ -165,10 +278,12 @@ if (activePage === "Resume Analyzer") {
               <h1 className="text-lg font-bold tracking-tight">
                 CareerLens
               </h1>
+
               <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-600">
                 AI Career Assistant
               </p>
             </div>
+
           </div>
 
           <button
@@ -177,16 +292,21 @@ if (activePage === "Resume Analyzer") {
           >
             <FiX size={20} />
           </button>
+
         </div>
 
-        {/* Navigation */}
+        {/* NAVIGATION */}
+
         <div className="flex-1 px-4 py-6">
+
           <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
             Workspace
           </p>
 
           <nav className="space-y-1">
+
             {navigation.map((item) => {
+
               const Icon = item.icon;
               const active = activePage === item.name;
 
@@ -204,6 +324,7 @@ if (activePage === "Resume Analyzer") {
                   }`}
                 >
                   <Icon size={19} />
+
                   <span>{item.name}</span>
 
                   {active && (
@@ -212,6 +333,7 @@ if (activePage === "Resume Analyzer") {
                 </button>
               );
             })}
+
           </nav>
 
           <p className="mb-3 mt-8 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -222,16 +344,22 @@ if (activePage === "Resume Analyzer") {
             <FiSettings size={19} />
             Settings
           </button>
+
         </div>
 
-        {/* Upgrade card */}
+        {/* UPGRADE CARD */}
+
         <div className="p-4">
+
           <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 p-5 text-white">
+
             <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/15">
               ✦
             </div>
 
-            <h3 className="font-semibold">Unlock CareerLens Pro</h3>
+            <h3 className="font-semibold">
+              Unlock CareerLens Pro
+            </h3>
 
             <p className="mt-1 text-xs leading-5 text-blue-100">
               Get unlimited resume analysis, interviews and job matching.
@@ -241,15 +369,23 @@ if (activePage === "Resume Analyzer") {
               Upgrade
               <FiArrowUpRight size={15} />
             </button>
+
           </div>
+
         </div>
+
       </aside>
 
-      {/* Main */}
+      {/* MAIN */}
+
       <div className="lg:ml-64">
-        {/* Header */}
+
+        {/* HEADER */}
+
         <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur md:px-8">
+
           <div className="flex items-center gap-4">
+
             <button
               onClick={() => setSidebarOpen(true)}
               className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
@@ -258,51 +394,85 @@ if (activePage === "Resume Analyzer") {
             </button>
 
             <div className="hidden items-center gap-2 rounded-xl bg-slate-50 px-4 py-2.5 md:flex">
-              <FiSearch className="text-slate-400" size={18} />
+
+              <FiSearch
+                className="text-slate-400"
+                size={18}
+              />
+
               <input
                 placeholder="Search jobs, skills..."
                 className="w-48 bg-transparent text-sm outline-none placeholder:text-slate-400"
               />
+
             </div>
 
             <div className="md:hidden">
-              <h1 className="font-bold">CareerLens</h1>
+              <h1 className="font-bold">
+                CareerLens
+              </h1>
             </div>
+
           </div>
 
           <div className="flex items-center gap-3">
+
             <button className="relative rounded-xl p-2.5 text-slate-500 hover:bg-slate-100">
+
               <FiBell size={20} />
+
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white" />
+
             </button>
 
             <div className="hidden h-7 w-px bg-slate-200 sm:block" />
 
             <div className="flex items-center gap-3">
+
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-sm font-bold text-white">
                 S
               </div>
 
               <div className="hidden sm:block">
-                <p className="text-sm font-semibold">Sandhesha</p>
-                <p className="text-xs text-slate-400">CSE • AI/ML</p>
+
+                <p className="text-sm font-semibold">
+                  Sandhesha
+                </p>
+
+                <p className="text-xs text-slate-400">
+                  CSE • AI/ML
+                </p>
+
               </div>
+
             </div>
+
           </div>
+
         </header>
 
-        {/* Content */}
+        {/* CONTENT */}
+
         <main className="mx-auto max-w-[1500px] p-5 md:p-8">
-          {/* Welcome banner */}
+
+          {/* WELCOME */}
+
           <section className="relative mb-7 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 p-6 text-white shadow-xl shadow-blue-500/10 md:p-8">
+
             <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-white/10" />
+
             <div className="absolute -bottom-40 right-40 h-80 w-80 rounded-full bg-white/5" />
 
             <div className="relative flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
+
               <div>
+
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur">
+
                   <span className="h-2 w-2 rounded-full bg-emerald-300" />
+
                   AI Career Assistant
+
                 </div>
 
                 <h2 className="text-2xl font-bold md:text-3xl">
@@ -315,8 +485,11 @@ if (activePage === "Resume Analyzer") {
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-3">
+
                   <button
-                    onClick={() => setActivePage("Resume Analyzer")}
+                    onClick={() =>
+                      setActivePage("Resume Analyzer")
+                    }
                     className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-blue-600 shadow-lg transition hover:-translate-y-0.5"
                   >
                     <FiUploadCloud size={17} />
@@ -324,37 +497,63 @@ if (activePage === "Resume Analyzer") {
                   </button>
 
                   <button
-                    onClick={() => setActivePage("AI Interview")}
+                    onClick={() =>
+                      setActivePage("AI Interview")
+                    }
                     className="flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
                   >
                     <FiMic size={17} />
                     Start Interview
                   </button>
+
                 </div>
+
               </div>
 
               <div className="grid grid-cols-3 gap-6 lg:min-w-[360px]">
+
                 <div>
-                  <p className="text-3xl font-bold">82%</p>
-                  <p className="mt-1 text-xs text-blue-100">Resume Score</p>
+                  <p className="text-3xl font-bold">
+                    {resumeScore}%
+                  </p>
+
+                  <p className="mt-1 text-xs text-blue-100">
+                    Resume Score
+                  </p>
                 </div>
 
                 <div>
-                  <p className="text-3xl font-bold">24</p>
-                  <p className="mt-1 text-xs text-blue-100">Job Matches</p>
+                  <p className="text-3xl font-bold">
+                    {jobMatches}
+                  </p>
+
+                  <p className="mt-1 text-xs text-blue-100">
+                    Job Matches
+                  </p>
                 </div>
 
                 <div>
-                  <p className="text-3xl font-bold">76%</p>
-                  <p className="mt-1 text-xs text-blue-100">Interview Score</p>
+                  <p className="text-3xl font-bold">
+                    {interviewScore}%
+                  </p>
+
+                  <p className="mt-1 text-xs text-blue-100">
+                    Interview Score
+                  </p>
                 </div>
+
               </div>
+
             </div>
+
           </section>
 
-          {/* Stats */}
+          {/* STATS */}
+
           <section className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
             {stats.map((stat) => {
+
               const Icon = stat.icon;
 
               return (
@@ -362,15 +561,20 @@ if (activePage === "Resume Analyzer") {
                   key={stat.title}
                   className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
+
                   <div className="flex items-start justify-between">
+
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                       <Icon size={21} />
                     </div>
 
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-600">
-                      <FiTrendingUp size={12} />
-                      {stat.trend}
-                    </span>
+                    {stat.trend && (
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-600">
+                        <FiTrendingUp size={12} />
+                        {stat.trend}
+                      </span>
+                    )}
+
                   </div>
 
                   <p className="mt-5 text-sm font-medium text-slate-500">
@@ -384,112 +588,201 @@ if (activePage === "Resume Analyzer") {
                   <p className="mt-1 text-xs text-slate-400">
                     {stat.description}
                   </p>
+
                 </div>
               );
             })}
+
           </section>
 
-          {/* Main grid */}
+          {/* MAIN GRID */}
+
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            {/* Resume card */}
+
+            {/* RESUME INTELLIGENCE */}
+
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+
               <div className="flex items-center justify-between">
+
                 <div>
-                  <h3 className="text-lg font-bold">Resume Intelligence</h3>
+                  <h3 className="text-lg font-bold">
+                    Resume Intelligence
+                  </h3>
+
                   <p className="mt-1 text-sm text-slate-500">
                     Your latest resume analysis
                   </p>
                 </div>
 
                 <button
-                  onClick={() => setActivePage("Resume Analyzer")}
+                  onClick={() =>
+                    setActivePage("Resume Analyzer")
+                  }
                   className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
                 >
                   View analysis
                   <FiChevronRight size={16} />
                 </button>
+
               </div>
 
               <div className="mt-6 grid gap-6 md:grid-cols-[180px_1fr]">
-                {/* Score circle */}
+
+                {/* SCORE CIRCLE */}
+
                 <div className="flex items-center justify-center">
-                  <div className="relative flex h-40 w-40 items-center justify-center rounded-full bg-[conic-gradient(#2563eb_0_82%,#e2e8f0_82%_100%)]">
+
+                  <div
+                    className="relative flex h-40 w-40 items-center justify-center rounded-full"
+                    style={{
+                      background: `conic-gradient(#2563eb 0 ${resumeScore}%, #e2e8f0 ${resumeScore}% 100%)`,
+                    }}
+                  >
+
                     <div className="flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white">
-                      <span className="text-4xl font-bold">82</span>
-                      <span className="text-xs text-slate-400">out of 100</span>
+
+                      <span className="text-4xl font-bold">
+                        {resumeScore}
+                      </span>
+
+                      <span className="text-xs text-slate-400">
+                        out of 100
+                      </span>
+
                     </div>
+
                   </div>
+
                 </div>
 
-                {/* Analysis */}
+                {/* ANALYSIS */}
+
                 <div>
+
                   <div className="mb-5">
+
                     <div className="mb-2 flex justify-between text-sm">
-                      <span className="font-medium">Profile Strength</span>
-                      <span className="font-semibold text-blue-600">
-                        Strong
+
+                      <span className="font-medium">
+                        Profile Strength
                       </span>
+
+                      <span className="font-semibold text-blue-600">
+                        {resumeScore >= 80
+                          ? "Strong"
+                          : resumeScore >= 60
+                          ? "Good"
+                          : "Needs Improvement"}
+                      </span>
+
                     </div>
 
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full w-[82%] rounded-full bg-gradient-to-r from-blue-500 to-violet-500" />
+
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500"
+                        style={{
+                          width: `${resumeScore}%`,
+                        }}
+                      />
+
                     </div>
+
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
+
                     {[
                       "Technical Skills",
                       "Experience",
                       "Projects",
                       "Keywords",
                     ].map((item, index) => (
+
                       <div
                         key={item}
                         className="rounded-xl bg-slate-50 p-3"
                       >
+
                         <div className="flex items-center justify-between">
+
                           <span className="text-xs text-slate-500">
                             {item}
                           </span>
+
                           <FiCheckCircle
                             className="text-emerald-500"
                             size={15}
                           />
+
                         </div>
 
                         <p className="mt-1 text-sm font-bold">
-                          {index === 1 ? "78%" : index === 3 ? "74%" : "88%"}
+                          {resumeScore > 0
+                            ? index === 1
+                              ? "78%"
+                              : index === 3
+                              ? "74%"
+                              : "88%"
+                            : "—"}
                         </p>
+
                       </div>
+
                     ))}
+
                   </div>
 
                   <div className="mt-4 flex items-start gap-3 rounded-xl bg-amber-50 p-3">
-                    <span className="mt-0.5">💡</span>
+
+                    <span className="mt-0.5">
+                      💡
+                    </span>
+
                     <p className="text-xs leading-5 text-amber-800">
-                      Add more measurable achievements to your project
-                      descriptions to improve your score.
+                      {resumeScore > 0
+                        ? "Add more measurable achievements to your project descriptions to improve your score."
+                        : "Upload your resume to get personalized AI analysis."}
                     </p>
+
                   </div>
+
                 </div>
+
               </div>
+
             </div>
 
-            {/* Activity */}
+            {/* ACTIVITY */}
+
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
               <div className="flex items-center justify-between">
+
                 <div>
-                  <h3 className="text-lg font-bold">Recent Activity</h3>
+
+                  <h3 className="text-lg font-bold">
+                    Recent Activity
+                  </h3>
+
                   <p className="mt-1 text-sm text-slate-500">
                     Your latest actions
                   </p>
+
                 </div>
 
-                <FiClock className="text-slate-400" size={20} />
+                <FiClock
+                  className="text-slate-400"
+                  size={20}
+                />
+
               </div>
 
               <div className="mt-6 space-y-5">
+
                 {activities.map((activity) => {
+
                   const Icon = activity.icon;
 
                   return (
@@ -497,51 +790,74 @@ if (activePage === "Resume Analyzer") {
                       key={activity.title}
                       className="flex items-start gap-3"
                     >
+
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                         <Icon size={16} />
                       </div>
 
                       <div>
+
                         <p className="text-sm font-medium">
                           {activity.title}
                         </p>
+
                         <p className="mt-1 text-xs text-slate-400">
                           {activity.time}
                         </p>
+
                       </div>
+
                     </div>
                   );
                 })}
+
               </div>
+
             </div>
+
           </section>
 
-          {/* Job matches */}
+          {/* JOB MATCHES */}
+
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+
               <div>
-                <h3 className="text-lg font-bold">Top Job Matches</h3>
+
+                <h3 className="text-lg font-bold">
+                  Top Job Matches
+                </h3>
+
                 <p className="mt-1 text-sm text-slate-500">
                   Jobs that match your resume and skills
                 </p>
+
               </div>
 
               <button
-                onClick={() => setActivePage("Job Matching")}
+                onClick={() =>
+                  setActivePage("Job Matching")
+                }
                 className="flex items-center gap-1 text-sm font-semibold text-blue-600"
               >
                 Explore all jobs
                 <FiArrowUpRight size={16} />
               </button>
+
             </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-3">
+
               {jobs.map((job) => (
+
                 <div
                   key={job.role}
                   className="group rounded-2xl border border-slate-200 p-5 transition hover:border-blue-200 hover:shadow-md"
                 >
+
                   <div className="flex items-start justify-between">
+
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-lg font-bold text-white">
                       {job.company.charAt(0)}
                     </div>
@@ -549,104 +865,153 @@ if (activePage === "Resume Analyzer") {
                     <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
                       {job.match}% Match
                     </div>
+
                   </div>
 
-                  <h4 className="mt-5 font-bold">{job.role}</h4>
+                  <h4 className="mt-5 font-bold">
+                    {job.role}
+                  </h4>
 
-                  <p className="mt-1 text-sm text-slate-500">{job.company}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {job.company}
+                  </p>
 
                   <div className="mt-4 flex flex-wrap gap-2">
+
                     {job.skills.map((skill) => (
+
                       <span
                         key={skill}
                         className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
                       >
                         {skill}
                       </span>
+
                     ))}
+
                   </div>
 
                   <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+
                     <span className="text-xs font-medium text-slate-500">
                       {job.salary}
                     </span>
 
-                    <button className="flex items-center gap-1 text-xs font-bold text-blue-600 opacity-100 transition group-hover:gap-2">
+                    <button className="flex items-center gap-1 text-xs font-bold text-blue-600 transition group-hover:gap-2">
                       View Job
                       <FiChevronRight size={14} />
                     </button>
+
                   </div>
+
                 </div>
+
               ))}
+
             </div>
+
           </section>
 
-          {/* Quick actions */}
+          {/* QUICK ACTIONS */}
+
           <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+
             <button
-              onClick={() => setActivePage("Resume Analyzer")}
+              onClick={() =>
+                setActivePage("Resume Analyzer")
+              }
               className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-md"
             >
+
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                 <FiUploadCloud size={22} />
               </div>
 
               <div className="flex-1">
-                <h4 className="font-semibold">Upload Resume</h4>
+
+                <h4 className="font-semibold">
+                  Upload Resume
+                </h4>
+
                 <p className="mt-1 text-xs text-slate-500">
                   Get an instant AI analysis
                 </p>
+
               </div>
 
               <FiChevronRight
                 className="text-slate-400 transition group-hover:translate-x-1"
                 size={18}
               />
+
             </button>
 
             <button
-              onClick={() => setActivePage("AI Interview")}
+              onClick={() =>
+                setActivePage("AI Interview")
+              }
               className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-violet-200 hover:shadow-md"
             >
+
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
                 <FiMic size={22} />
               </div>
 
               <div className="flex-1">
-                <h4 className="font-semibold">Practice Interview</h4>
+
+                <h4 className="font-semibold">
+                  Practice Interview
+                </h4>
+
                 <p className="mt-1 text-xs text-slate-500">
                   Practice with your AI interviewer
                 </p>
+
               </div>
 
               <FiChevronRight
                 className="text-slate-400 transition group-hover:translate-x-1"
                 size={18}
               />
+
             </button>
 
             <button
-              onClick={() => setActivePage("Career Roadmap")}
+              onClick={() =>
+                setActivePage("Career Roadmap")
+              }
               className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-md"
             >
+
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                 <FiMap size={22} />
               </div>
+
               <div className="flex-1">
-                <h4 className="font-semibold">Career Roadmap</h4>
+
+                <h4 className="font-semibold">
+                  Career Roadmap
+                </h4>
+
                 <p className="mt-1 text-xs text-slate-500">
                   Discover your next career steps
                 </p>
+
               </div>
 
               <FiChevronRight
                 className="text-slate-400 transition group-hover:translate-x-1"
                 size={18}
               />
+
             </button>
+
           </section>
+
         </main>
+
       </div>
+
     </div>
   );
 }
