@@ -5,12 +5,10 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from backend.services.resume_parser import extract_resume_text
 
-
 router = APIRouter(
     prefix="/api/resume",
     tags=["Resume"],
 )
-
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -18,6 +16,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload")
 async def upload_resume(file: UploadFile = File(...)):
+
     if file.content_type != "application/pdf":
         raise HTTPException(
             status_code=400,
