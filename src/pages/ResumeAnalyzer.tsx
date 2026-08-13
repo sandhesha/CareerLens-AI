@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 
 import { uploadResume } from "../services/api";
+import { saveResume } from "../services/careerService";
 
 interface ResumeAnalyzerProps {
   onBack?: () => void;
@@ -25,6 +26,95 @@ interface ResumeResult {
   success?: boolean;
   filename?: string;
   text?: string;
+}
+function createResumeProfile(
+  text: string
+) {
+  const normalizedText = text.toLowerCase();
+
+  const technicalKeywords = [
+    "python",
+    "java",
+    "javascript",
+    "typescript",
+    "react",
+    "node.js",
+    "nodejs",
+    "html",
+    "css",
+    "sql",
+    "mysql",
+    "mongodb",
+    "machine learning",
+    "deep learning",
+    "artificial intelligence",
+    "generative ai",
+    "data science",
+    "pandas",
+    "numpy",
+    "tensorflow",
+    "pytorch",
+    "git",
+    "github",
+    "aws",
+    "azure",
+    "docker",
+    "fastapi",
+    "flask",
+    "express",
+    "rest api",
+    "power bi",
+    "tableau",
+    "excel",
+  ];
+
+  const softSkillKeywords = [
+    "communication",
+    "leadership",
+    "teamwork",
+    "problem solving",
+    "problem-solving",
+    "adaptability",
+    "time management",
+    "critical thinking",
+    "collaboration",
+  ];
+
+  const skills = technicalKeywords.filter(
+    (skill) =>
+      normalizedText.includes(skill)
+  );
+
+  const softSkills = softSkillKeywords.filter(
+    (skill) =>
+      normalizedText.includes(skill)
+  );
+
+  return {
+    name:
+      text.match(
+        /(?:name\s*[:\-]?\s*)([a-z .'-]{2,50})/i
+      )?.[1]
+        ?.trim() || "Candidate",
+
+    skills,
+
+    technicalSkills: skills,
+
+    softSkills,
+
+    education: [],
+
+    experience: [],
+
+    projects: [],
+
+    certifications: [],
+
+    interests: [],
+
+    summary: text.slice(0, 500),
+  };
 }
 
 function ResumeAnalyzer({
@@ -117,6 +207,10 @@ function ResumeAnalyzer({
       }
 
       setResumeText(extractedText);
+      const resumeProfile =
+        createResumeProfile(extractedText);
+
+      saveResume(resumeProfile);
 
       // =========================
       // SAVE RESUME INFORMATION

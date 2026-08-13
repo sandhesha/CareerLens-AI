@@ -3,8 +3,7 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from backend.services.resume_parser import extract_resume_text
-
+from services.resume_parser import extract_resume_text
 router = APIRouter(
     prefix="/api/resume",
     tags=["Resume"],
