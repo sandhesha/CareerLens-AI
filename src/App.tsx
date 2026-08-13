@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
 
-import CareerRoadmap from "./pages/CareerRoadmap";
-import Interview from "./pages/Interview";
-import JobMatching from "./pages/JobMatching";
-import ResumeAnalyzer from "./pages/ResumeAnalyzer";
-
 import {
   FiHome,
   FiFileText,
@@ -24,92 +19,106 @@ import {
   FiX,
 } from "react-icons/fi";
 
+import CareerRoadmap from "./pages/CareerRoadmap";
+import Interview from "./pages/Interview";
+import JobMatching from "./pages/JobMatching";
+import ResumeAnalyzer from "./pages/ResumeAnalyzer";
+
 function App() {
   // =========================
   // STATE
   // =========================
 
-  const [activePage, setActivePage] = useState("Dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activePage, setActivePage] = useState<string>("Dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
-  const [resumeScore, setResumeScore] = useState(0);
-const [jobMatches, setJobMatches] = useState(0);
-const [interviewScore, setInterviewScore] = useState(0);
-const [skillsMatched, setSkillsMatched] = useState(0);
+  const [resumeScore, setResumeScore] = useState<number>(0);
+  const [jobMatches, setJobMatches] = useState<number>(0);
+  const [interviewScore, setInterviewScore] = useState<number>(0);
+  const [skillsMatched, setSkillsMatched] = useState<number>(0);
 
   // =========================
-  // CLEAR DATA ONLY ON
-  // ACTUAL BROWSER REFRESH
+  // LOAD / CLEAR DASHBOARD DATA
   // =========================
 
   useEffect(() => {
-  const navigationEntry = performance.getEntriesByType(
-    "navigation"
-  )[0] as PerformanceNavigationTiming;
+    const navigationEntry = performance.getEntriesByType(
+      "navigation"
+    )[0] as PerformanceNavigationTiming | undefined;
 
-  if (navigationEntry?.type === "reload") {
-    localStorage.removeItem("resumeText");
-    localStorage.removeItem("resumeFileName");
-    localStorage.removeItem("resumeScore");
-    localStorage.removeItem("skillsMatched");
-    localStorage.removeItem("jobMatches");
-    localStorage.removeItem("interviewScore");
+    if (navigationEntry?.type === "reload") {
+      localStorage.removeItem("resumeText");
+      localStorage.removeItem("resumeFileName");
+      localStorage.removeItem("resumeScore");
+      localStorage.removeItem("skillsMatched");
+      localStorage.removeItem("jobMatches");
+      localStorage.removeItem("interviewScore");
 
-    setResumeScore(0);
-    setJobMatches(0);
-    setInterviewScore(0);
-    setSkillsMatched(0);
-  }
+      setResumeScore(0);
+      setJobMatches(0);
+      setInterviewScore(0);
+      setSkillsMatched(0);
+    } else {
+      updateDashboard();
+    }
 
-  const updateDashboard = () => {
-    setResumeScore(
-      Number(localStorage.getItem("resumeScore")) || 0
-    );
+    function updateDashboard() {
+      setResumeScore(
+        Number(localStorage.getItem("resumeScore")) || 0
+      );
 
-    setJobMatches(
-      Number(localStorage.getItem("jobMatches")) || 0
-    );
+      setJobMatches(
+        Number(localStorage.getItem("jobMatches")) || 0
+      );
 
-    setInterviewScore(
-      Number(localStorage.getItem("interviewScore")) || 0
-    );
+      setInterviewScore(
+        Number(localStorage.getItem("interviewScore")) || 0
+      );
 
-    setSkillsMatched(
-      Number(localStorage.getItem("skillsMatched")) || 0
-    );
-  };
+      setSkillsMatched(
+        Number(localStorage.getItem("skillsMatched")) || 0
+      );
+    }
 
-  window.addEventListener(
-    "careerlens-dashboard-update",
-    updateDashboard
-  );
-
-  return () => {
-    window.removeEventListener(
+    window.addEventListener(
       "careerlens-dashboard-update",
       updateDashboard
     );
-  };
-}, []);
 
+    return () => {
+      window.removeEventListener(
+        "careerlens-dashboard-update",
+        updateDashboard
+      );
+    };
+  }, []);
 
-useEffect(() => {
-  const startInterview = () => {
-    setActivePage("AI Interview");
-  };
+  // =========================
+  // START INTERVIEW EVENT
+  // =========================
 
-  window.addEventListener(
-    "start-careerlens-interview",
-    startInterview
-  );
+  useEffect(() => {
+    const startInterview = () => {
+      setActivePage("AI Interview");
+    };
 
-  return () => {
-    window.removeEventListener(
+    window.addEventListener(
       "start-careerlens-interview",
       startInterview
     );
-  };
-}, []);
+
+    return () => {
+      window.removeEventListener(
+        "start-careerlens-interview",
+        startInterview
+      );
+    };
+  }, []);
+
+  // =========================
+  // NAVIGATION
+  // =========================
+
   const navigation = [
     {
       name: "Dashboard",
@@ -137,18 +146,33 @@ useEffect(() => {
   // PAGE ROUTING
   // =========================
 
- if (activePage === "Resume Analyzer") {
-  return (
-    <ResumeAnalyzer
-      onBack={() => setActivePage("Dashboard")}
-      onAnalysisComplete={(score, skills, jobs) => {
-        setResumeScore(score);
-        setSkillsMatched(skills);
-        setJobMatches(jobs);
-      }}
-    />
-  );
-}
+  if (activePage === "Resume Analyzer") {
+    return (
+      <ResumeAnalyzer
+        onBack={() => setActivePage("Dashboard")}
+        onAnalysisComplete={(score, skills, jobs) => {
+          setResumeScore(score);
+          setSkillsMatched(skills);
+          setJobMatches(jobs);
+
+          localStorage.setItem(
+            "resumeScore",
+            String(score)
+          );
+
+          localStorage.setItem(
+            "skillsMatched",
+            String(skills)
+          );
+
+          localStorage.setItem(
+            "jobMatches",
+            String(jobs)
+          );
+        }}
+      />
+    );
+  }
 
   if (activePage === "Job Matching") {
     return (
@@ -159,15 +183,24 @@ useEffect(() => {
   }
 
   if (activePage === "AI Interview") {
-  return (
-    <Interview
-      onBack={() => setActivePage("Dashboard")}
-      onInterviewComplete={(score) => {
-        setInterviewScore(score);
-      }}
-    />
-  );
-}
+    return (
+      <Interview
+        onBack={() => setActivePage("Dashboard")}
+        onInterviewComplete={(score) => {
+          setInterviewScore(score);
+
+          localStorage.setItem(
+            "interviewScore",
+            String(score)
+          );
+
+          window.dispatchEvent(
+            new Event("careerlens-dashboard-update")
+          );
+        }}
+      />
+    );
+  }
 
   if (activePage === "Career Roadmap") {
     return (
@@ -336,7 +369,6 @@ useEffect(() => {
           <nav className="space-y-1">
 
             {navigation.map((item) => {
-
               const Icon = item.icon;
               const active = activePage === item.name;
 
@@ -353,7 +385,6 @@ useEffect(() => {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-
                   <Icon size={19} />
 
                   <span>{item.name}</span>
@@ -361,7 +392,6 @@ useEffect(() => {
                   {active && (
                     <span className="ml-auto h-2 w-2 rounded-full bg-blue-600" />
                   )}
-
                 </button>
               );
             })}
@@ -585,7 +615,6 @@ useEffect(() => {
           <section className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
             {stats.map((stat) => {
-
               const Icon = stat.icon;
 
               return (

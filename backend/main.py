@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routes.resume import router as resume_router
-
 app = FastAPI(
     title="CareerLens AI",
     description="AI-powered resume analysis and interview preparation API",

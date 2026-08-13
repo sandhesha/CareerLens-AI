@@ -27,7 +27,10 @@ interface ResumeResult {
   text?: string;
 }
 
-function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
+function ResumeAnalyzer({
+  onBack,
+  onAnalysisComplete,
+}: ResumeAnalyzerProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -40,6 +43,10 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
     skills: 0,
     jobMatches: 0,
   });
+
+  // =========================
+  // FILE SELECTION
+  // =========================
 
   const handleFileChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -54,12 +61,17 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
       return;
     }
 
-    if (file.type !== "application/pdf") {
+    // PDF validation
+    if (
+      file.type !== "application/pdf" &&
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
       setUploadError("Please select a PDF resume.");
       setSelectedFile(null);
       return;
     }
 
+    // 10 MB validation
     if (file.size > 10 * 1024 * 1024) {
       setUploadError("Resume must be smaller than 10 MB.");
       setSelectedFile(null);
@@ -69,9 +81,17 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
     setSelectedFile(file);
   };
 
+  // =========================
+  // CHOOSE FILE
+  // =========================
+
   const handleChooseFile = () => {
     fileInputRef.current?.click();
   };
+
+  // =========================
+  // UPLOAD + ANALYZE
+  // =========================
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -84,7 +104,9 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
       setUploadError("");
       setResumeText("");
 
-      const result: ResumeResult = await uploadResume(selectedFile);
+      // FIXED
+      const result: ResumeResult =
+        await uploadResume(selectedFile);
 
       const extractedText = result.text || "";
 
@@ -96,18 +118,24 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
 
       setResumeText(extractedText);
 
-      /*
-       * Save resume information
-       */
-      localStorage.setItem("resumeText", extractedText);
+      // =========================
+      // SAVE RESUME INFORMATION
+      // =========================
+
+      localStorage.setItem(
+        "resumeText",
+        extractedText
+      );
+
       localStorage.setItem(
         "resumeFileName",
         selectedFile.name
       );
 
-      /*
-       * Basic resume analysis
-       */
+      // =========================
+      // BASIC RESUME ANALYSIS
+      // =========================
+
       const text = extractedText.toLowerCase();
 
       const skillKeywords = [
@@ -140,41 +168,68 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
         "flask",
       ];
 
-      const matchedSkills = skillKeywords.filter((skill) =>
-        text.includes(skill)
+      const matchedSkills = skillKeywords.filter(
+        (skill) => text.includes(skill)
       );
 
       const skillsCount = matchedSkills.length;
 
+      // =========================
+      // RESUME SCORE
+      // =========================
+
       let score = 40;
 
-      if (text.includes("education")) score += 10;
-      if (text.includes("experience")) score += 10;
-      if (text.includes("projects")) score += 10;
-      if (text.includes("skills")) score += 5;
-      if (text.includes("certification")) score += 5;
+      if (text.includes("education")) {
+        score += 10;
+      }
 
-      score += Math.min(skillsCount * 2, 20);
+      if (text.includes("experience")) {
+        score += 10;
+      }
+
+      if (text.includes("projects")) {
+        score += 10;
+      }
+
+      if (text.includes("skills")) {
+        score += 5;
+      }
+
+      if (text.includes("certification")) {
+        score += 5;
+      }
+
+      score += Math.min(
+        skillsCount * 2,
+        20
+      );
 
       score = Math.min(score, 100);
+
+      // =========================
+      // JOB MATCHES
+      // =========================
 
       const matches = Math.min(
         Math.max(Math.floor(score / 3), 5),
         30
       );
 
-      /*
-       * Update page
-       */
+      // =========================
+      // UPDATE PAGE
+      // =========================
+
       setAnalysis({
         score,
         skills: skillsCount,
         jobMatches: matches,
       });
 
-      /*
-       * Save dashboard values
-       */
+      // =========================
+      // SAVE DASHBOARD VALUES
+      // =========================
+
       localStorage.setItem(
         "resumeScore",
         score.toString()
@@ -190,12 +245,41 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
         matches.toString()
       );
 
-      console.log("Resume analysis complete");
+      // =========================
+      // UPDATE APP DASHBOARD
+      // =========================
+
+      onAnalysisComplete?.(
+        score,
+        skillsCount,
+        matches
+      );
+
+      // Notify other components
+      window.dispatchEvent(
+        new CustomEvent(
+          "careerlens-dashboard-update"
+        )
+      );
+
+      console.log(
+        "Resume analysis complete"
+      );
+
       console.log("Score:", score);
-      console.log("Skills:", skillsCount);
-      console.log("Job matches:", matches);
+      console.log(
+        "Skills:",
+        skillsCount
+      );
+      console.log(
+        "Job matches:",
+        matches
+      );
     } catch (error) {
-      console.error("Resume upload error:", error);
+      console.error(
+        "Resume upload error:",
+        error
+      );
 
       setUploadError(
         error instanceof Error
@@ -206,6 +290,10 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
       setUploading(false);
     }
   };
+
+  // =========================
+  // REMOVE FILE
+  // =========================
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
@@ -218,16 +306,40 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
       jobMatches: 0,
     });
 
-    localStorage.removeItem("resumeText");
-    localStorage.removeItem("resumeFileName");
-    localStorage.removeItem("resumeScore");
-    localStorage.removeItem("skillsMatched");
-    localStorage.removeItem("jobMatches");
+    localStorage.removeItem(
+      "resumeText"
+    );
+
+    localStorage.removeItem(
+      "resumeFileName"
+    );
+
+    localStorage.removeItem(
+      "resumeScore"
+    );
+
+    localStorage.removeItem(
+      "skillsMatched"
+    );
+
+    localStorage.removeItem(
+      "jobMatches"
+    );
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "careerlens-dashboard-update"
+      )
+    );
   };
+
+  // =========================
+  // START INTERVIEW
+  // =========================
 
   const handleStartInterview = () => {
     if (!resumeText) {
@@ -238,27 +350,45 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
     }
 
     window.dispatchEvent(
-      new CustomEvent("start-careerlens-interview")
+      new CustomEvent(
+        "start-careerlens-interview"
+      )
     );
   };
 
-  const formatFileSize = (bytes: number) => {
+  // =========================
+  // FILE SIZE
+  // =========================
+
+  const formatFileSize = (
+    bytes: number
+  ) => {
     if (bytes < 1024) {
       return `${bytes} B`;
     }
 
     if (bytes < 1024 * 1024) {
-      return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(
+        bytes / 1024
+      ).toFixed(1)} KB`;
     }
 
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(
+      bytes /
+      (1024 * 1024)
+    ).toFixed(1)} MB`;
   };
+
+  // =========================
+  // UI
+  // =========================
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
 
-        {/* Back button */}
+        {/* BACK BUTTON */}
+
         {onBack && (
           <button
             type="button"
@@ -270,18 +400,21 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
           </button>
         )}
 
-        {/* Header */}
+        {/* HEADER */}
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
             Resume Analyzer
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Upload your resume and get an instant AI-powered analysis.
+            Upload your resume and get an
+            instant AI-powered analysis.
           </p>
         </div>
 
-        {/* Upload card */}
+        {/* UPLOAD CARD */}
+
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
 
           <div className="mb-6">
@@ -290,11 +423,13 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              PDF files only. Maximum size: 10 MB.
+              PDF files only. Maximum size:
+              10 MB.
             </p>
           </div>
 
-          {/* Hidden input */}
+          {/* HIDDEN INPUT */}
+
           <input
             ref={fileInputRef}
             type="file"
@@ -303,7 +438,8 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
             className="hidden"
           />
 
-          {/* Upload area */}
+          {/* UPLOAD AREA */}
+
           {!selectedFile && (
             <button
               type="button"
@@ -328,36 +464,45 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
             </button>
           )}
 
-          {/* Selected file */}
+          {/* SELECTED FILE */}
+
           {selectedFile && (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                 <div className="flex items-center gap-4">
+
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
                     <FiFileText size={23} />
                   </div>
 
                   <div className="min-w-0">
+
                     <p className="truncate text-sm font-semibold text-slate-800">
                       {selectedFile.name}
                     </p>
 
                     <p className="mt-1 text-xs text-slate-500">
-                      {formatFileSize(selectedFile.size)}
+                      {formatFileSize(
+                        selectedFile.size
+                      )}
                     </p>
+
                   </div>
+
                 </div>
 
                 <button
                   type="button"
                   onClick={handleRemoveFile}
                   disabled={uploading}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                 >
                   <FiTrash2 size={16} />
                   Remove
                 </button>
+
               </div>
 
               <button
@@ -381,12 +526,15 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
                   </>
                 )}
               </button>
+
             </div>
           )}
 
-          {/* Error */}
+          {/* ERROR */}
+
           {uploadError && (
             <div className="mt-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+
               <FiXCircle
                 size={20}
                 className="mt-0.5 shrink-0"
@@ -401,16 +549,21 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
                   {uploadError}
                 </p>
               </div>
+
             </div>
           )}
+
         </div>
 
-        {/* Analysis results */}
+        {/* ANALYSIS RESULTS */}
+
         {resumeText && (
           <div className="mt-6 space-y-6">
 
-            {/* Success */}
+            {/* SUCCESS */}
+
             <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-700">
+
               <FiCheckCircle size={22} />
 
               <div>
@@ -422,9 +575,11 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
                   {selectedFile?.name}
                 </p>
               </div>
+
             </div>
 
-            {/* Scores */}
+            {/* SCORES */}
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -471,17 +626,20 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
 
             </div>
 
-            {/* Extracted text */}
+            {/* EXTRACTED TEXT */}
+
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
               <div className="flex items-center justify-between">
+
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
                     Extracted Resume Text
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Text successfully extracted from your PDF.
+                    Text successfully extracted
+                    from your PDF.
                   </p>
                 </div>
 
@@ -489,26 +647,34 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
                   size={22}
                   className="text-emerald-500"
                 />
+
               </div>
 
               <div className="mt-5 max-h-96 overflow-y-auto rounded-xl bg-slate-50 p-5">
+
                 <pre className="whitespace-pre-wrap font-sans text-sm leading-6 text-slate-700">
                   {resumeText}
                 </pre>
+
               </div>
+
             </div>
 
-            {/* Interview */}
+            {/* INTERVIEW CTA */}
+
             <div className="flex flex-col items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 p-6 text-white sm:flex-row">
 
               <div>
+
                 <h2 className="text-lg font-bold">
                   Ready for your interview?
                 </h2>
 
                 <p className="mt-1 text-sm text-blue-100">
-                  Use your analyzed resume to prepare for an AI interview.
+                  Use your analyzed resume to
+                  prepare for an AI interview.
                 </p>
+
               </div>
 
               <button
@@ -519,6 +685,7 @@ function ResumeAnalyzer({ onBack }: ResumeAnalyzerProps) {
                 Start Interview
                 <FiArrowRight size={17} />
               </button>
+
             </div>
 
           </div>

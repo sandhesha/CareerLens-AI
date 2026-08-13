@@ -1,12 +1,13 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiBookOpen,
   FiCheckCircle,
-  FiChevronRight,
-  FiClock,
+  FiChevronDown,
+  FiChevronUp,
   FiCode,
-  FiLock,
-  FiPlayCircle,
+  FiMap,
+  FiRefreshCw,
   FiTarget,
   FiTrendingUp,
 } from "react-icons/fi";
@@ -15,378 +16,697 @@ interface CareerRoadmapProps {
   onBack: () => void;
 }
 
-const roadmap = [
-  {
-    step: "01",
-    title: "Strengthen JavaScript",
+interface RoadmapStep {
+  title: string;
+  description: string;
+  skills: string[];
+  resources: string[];
+}
+
+interface CareerTrack {
+  title: string;
+  description: string;
+  steps: RoadmapStep[];
+}
+
+const careerTracks: Record<string, CareerTrack> = {
+  frontend: {
+    title: "Frontend Developer",
     description:
-      "Improve your understanding of modern JavaScript concepts used in professional frontend development.",
-    skills: ["ES6+", "Async/Await", "Promises", "DOM"],
-    duration: "1–2 weeks",
-    status: "completed",
+      "Build modern, responsive and interactive web applications.",
+    steps: [
+      {
+        title: "Master HTML, CSS & JavaScript",
+        description:
+          "Strengthen your web fundamentals before moving into advanced frameworks.",
+        skills: ["HTML5", "CSS3", "JavaScript ES6+"],
+        resources: [
+          "Responsive Web Design",
+          "JavaScript DOM",
+          "Async JavaScript",
+        ],
+      },
+      {
+        title: "Master React",
+        description:
+          "Learn component architecture, hooks, state management and API integration.",
+        skills: ["React", "React Hooks", "React Router"],
+        resources: [
+          "React Components",
+          "React Hooks",
+          "API Integration",
+        ],
+      },
+      {
+        title: "Learn TypeScript",
+        description:
+          "Use TypeScript to build safer and scalable React applications.",
+        skills: ["TypeScript", "Interfaces", "Generics"],
+        resources: [
+          "TypeScript Fundamentals",
+          "TypeScript with React",
+          "Advanced Types",
+        ],
+      },
+      {
+        title: "Build Production Projects",
+        description:
+          "Create portfolio projects that demonstrate real-world development skills.",
+        skills: [
+          "Git",
+          "REST APIs",
+          "Authentication",
+          "Deployment",
+        ],
+        resources: [
+          "Build a SaaS Dashboard",
+          "Build an E-commerce App",
+          "Deploy with Vercel",
+        ],
+      },
+    ],
   },
-  {
-    step: "02",
-    title: "Master React & TypeScript",
+
+  aiml: {
+    title: "AI / ML Engineer",
     description:
-      "Build scalable React applications using TypeScript, reusable components and modern patterns.",
-    skills: ["React", "TypeScript", "Hooks", "State Management"],
-    duration: "2–3 weeks",
-    status: "current",
+      "Build intelligent applications using machine learning and AI.",
+    steps: [
+      {
+        title: "Strengthen Python",
+        description:
+          "Become comfortable with Python programming and data manipulation.",
+        skills: ["Python", "Functions", "OOP", "Git"],
+        resources: [
+          "Python Fundamentals",
+          "Object Oriented Programming",
+          "Python Projects",
+        ],
+      },
+      {
+        title: "Learn Data Science",
+        description:
+          "Learn how to clean, analyze and visualize datasets.",
+        skills: ["NumPy", "Pandas", "Matplotlib", "SQL"],
+        resources: [
+          "Data Cleaning",
+          "Exploratory Data Analysis",
+          "SQL for Data Science",
+        ],
+      },
+      {
+        title: "Machine Learning",
+        description:
+          "Understand supervised and unsupervised machine learning.",
+        skills: [
+          "Scikit-learn",
+          "Regression",
+          "Classification",
+          "Clustering",
+        ],
+        resources: [
+          "Machine Learning Fundamentals",
+          "Model Evaluation",
+          "Feature Engineering",
+        ],
+      },
+      {
+        title: "Deep Learning & GenAI",
+        description:
+          "Move into neural networks, LLMs and retrieval augmented generation.",
+        skills: [
+          "TensorFlow",
+          "Neural Networks",
+          "LLMs",
+          "RAG",
+        ],
+        resources: [
+          "Deep Learning",
+          "Generative AI",
+          "RAG Applications",
+        ],
+      },
+    ],
   },
-  {
-    step: "03",
-    title: "Learn Next.js",
+
+  fullstack: {
+    title: "Full Stack Developer",
     description:
-      "Move from React to a production-ready framework used by many modern companies.",
-    skills: ["Next.js", "SSR", "Routing", "API Routes"],
-    duration: "2 weeks",
-    status: "locked",
+      "Develop complete applications across frontend and backend.",
+    steps: [
+      {
+        title: "Frontend Development",
+        description:
+          "Build strong frontend fundamentals and React applications.",
+        skills: ["HTML", "CSS", "JavaScript", "React"],
+        resources: [
+          "React",
+          "Responsive Design",
+          "Frontend Projects",
+        ],
+      },
+      {
+        title: "Backend Development",
+        description:
+          "Learn APIs, authentication and backend architecture.",
+        skills: ["Node.js", "FastAPI", "REST API"],
+        resources: [
+          "REST APIs",
+          "Authentication",
+          "Backend Architecture",
+        ],
+      },
+      {
+        title: "Databases",
+        description:
+          "Learn relational and NoSQL database design.",
+        skills: ["SQL", "PostgreSQL", "MongoDB"],
+        resources: [
+          "SQL",
+          "Database Design",
+          "MongoDB",
+        ],
+      },
+      {
+        title: "Deployment",
+        description:
+          "Deploy complete applications and understand production environments.",
+        skills: ["Git", "Docker", "Cloud", "CI/CD"],
+        resources: [
+          "Docker",
+          "Cloud Deployment",
+          "CI/CD",
+        ],
+      },
+    ],
   },
-  {
-    step: "04",
-    title: "Build Production Projects",
+
+  data: {
+    title: "Data Analyst",
     description:
-      "Create portfolio projects that demonstrate real-world development and problem solving.",
-    skills: ["REST APIs", "Authentication", "Deployment", "Git"],
-    duration: "3–4 weeks",
-    status: "locked",
+      "Turn raw data into meaningful insights and business decisions.",
+    steps: [
+      {
+        title: "Excel & Data Cleaning",
+        description:
+          "Build strong spreadsheet and data-cleaning skills.",
+        skills: ["Excel", "Data Cleaning", "Pivot Tables"],
+        resources: [
+          "Advanced Excel",
+          "Data Cleaning",
+          "Pivot Tables",
+        ],
+      },
+      {
+        title: "SQL",
+        description:
+          "Learn how to query and analyze relational databases.",
+        skills: ["SQL", "Joins", "CTEs", "Window Functions"],
+        resources: [
+          "SQL Fundamentals",
+          "Advanced SQL",
+          "SQL Projects",
+        ],
+      },
+      {
+        title: "Power BI / Tableau",
+        description:
+          "Create interactive dashboards and business reports.",
+        skills: ["Power BI", "DAX", "Tableau"],
+        resources: [
+          "Power BI",
+          "DAX",
+          "Dashboard Design",
+        ],
+      },
+      {
+        title: "Portfolio Projects",
+        description:
+          "Create data analytics projects using real datasets.",
+        skills: [
+          "Data Visualization",
+          "Business Analysis",
+          "Storytelling",
+        ],
+        resources: [
+          "Sales Dashboard",
+          "Customer Analytics",
+          "Business Intelligence",
+        ],
+      },
+    ],
   },
-  {
-    step: "05",
-    title: "Prepare for Interviews",
-    description:
-      "Practice technical, behavioral and project-based questions for frontend developer roles.",
-    skills: ["DSA", "System Design", "Behavioral", "Mock Interviews"],
-    duration: "2–3 weeks",
-    status: "locked",
-  },
-];
+};
 
-const skills = [
-  { name: "JavaScript", level: 88 },
-  { name: "React", level: 82 },
-  { name: "TypeScript", level: 72 },
-  { name: "Python", level: 78 },
-  { name: "SQL", level: 70 },
-  { name: "Next.js", level: 38 },
-];
+function detectTrack(text: string) {
+  const value = text.toLowerCase();
 
-function CareerRoadmap({ onBack }: CareerRoadmapProps) {
-  return (
-    <div className="min-h-screen bg-[#f6f8fc]">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-5 py-5 md:px-8">
-          <button
-            onClick={onBack}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-          >
-            <FiArrowLeft size={19} />
-          </button>
+  let frontend = 0;
+  let aiml = 0;
+  let fullstack = 0;
+  let data = 0;
 
-          <div>
-            <h1 className="text-xl font-bold">Career Roadmap</h1>
-            <p className="text-sm text-slate-500">
-              Your personalized path to your target career.
-            </p>
-          </div>
-        </div>
-      </header>
+  // Frontend
+  if (value.includes("react")) frontend += 3;
+  if (value.includes("typescript")) frontend += 2;
+  if (value.includes("javascript")) frontend += 2;
+  if (value.includes("html")) frontend += 1;
+  if (value.includes("css")) frontend += 1;
 
-      <main className="mx-auto max-w-[1200px] px-5 py-8 md:px-8">
-        {/* Hero */}
-        <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 p-7 text-white md:p-10">
-          <div className="max-w-3xl">
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-              <FiTrendingUp size={24} />
-            </div>
+  // AI / ML
+  if (value.includes("python")) aiml += 2;
+  if (value.includes("machine learning")) aiml += 4;
+  if (value.includes("tensorflow")) aiml += 3;
+  if (value.includes("artificial intelligence")) aiml += 3;
+  if (value.includes(" ai ")) aiml += 2;
+  if (value.includes("pandas")) aiml += 2;
+  if (value.includes("numpy")) aiml += 2;
 
-            <p className="text-sm font-medium text-emerald-100">
-              YOUR TARGET ROLE
-            </p>
+  // Full Stack
+  if (value.includes("node")) fullstack += 2;
+  if (value.includes("express")) fullstack += 2;
+  if (value.includes("mongodb")) fullstack += 2;
+  if (value.includes("backend")) fullstack += 2;
+  if (value.includes("api")) fullstack += 1;
+  if (value.includes("full stack")) fullstack += 4;
 
-            <h2 className="mt-2 text-3xl font-bold md:text-4xl">
-              Frontend Developer
-            </h2>
+  // Data
+  if (value.includes("sql")) data += 2;
+  if (value.includes("excel")) data += 2;
+  if (value.includes("power bi")) data += 3;
+  if (value.includes("tableau")) data += 3;
+  if (value.includes("data analyst")) data += 4;
+  if (value.includes("data analysis")) data += 3;
 
-            <p className="mt-4 text-sm leading-6 text-emerald-100 md:text-base">
-              CareerLens AI has created a learning path based on your current
-              skills and the requirements of your target role.
-            </p>
-          </div>
-        </section>
+  // Explicitly typed mutable array
+  const scores: Array<[string, number]> = [
+    ["frontend", frontend],
+    ["aiml", aiml],
+    ["fullstack", fullstack],
+    ["data", data],
+  ];
 
-        {/* Progress */}
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <h3 className="text-lg font-bold">Your career progress</h3>
-              <p className="mt-1 text-sm text-slate-500">
-                You are making good progress toward your target role.
-              </p>
-            </div>
+  scores.sort((a: [string, number], b: [string, number]) => {
+    return b[1] - a[1];
+  });
 
-            <div className="text-left md:text-right">
-              <p className="text-3xl font-bold text-emerald-600">64%</p>
-              <p className="text-xs text-slate-400">roadmap completed</p>
-            </div>
-          </div>
+  return scores[0][1] > 0 ? scores[0][0] : "frontend";
+}
 
-          <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-blue-500"
-              style={{ width: "64%" }}
-            />
-          </div>
+function extractSkills(text: string): string[] {
+  const skills = [
+    "React",
+    "TypeScript",
+    "JavaScript",
+    "Python",
+    "SQL",
+    "MongoDB",
+    "Node.js",
+    "FastAPI",
+    "Flask",
+    "TensorFlow",
+    "Machine Learning",
+    "AI",
+    "Pandas",
+    "NumPy",
+    "Excel",
+    "Power BI",
+    "Tableau",
+    "HTML",
+    "CSS",
+    "Git",
+  ];
 
-          <div className="mt-4 flex flex-wrap gap-5 text-xs text-slate-500">
-            <span className="flex items-center gap-2">
-              <FiCheckCircle className="text-emerald-500" />
-              1 completed
-            </span>
+  const lower = text.toLowerCase();
 
-            <span className="flex items-center gap-2">
-              <FiPlayCircle className="text-blue-500" />
-              1 in progress
-            </span>
-
-            <span className="flex items-center gap-2">
-              <FiLock className="text-slate-400" />
-              3 upcoming
-            </span>
-          </div>
-        </section>
-
-        {/* Main content */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-          {/* Roadmap */}
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-            <div className="mb-7">
-              <h3 className="text-xl font-bold">Your learning path</h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Follow these steps to become job-ready.
-              </p>
-            </div>
-
-            <div className="relative">
-              <div className="absolute bottom-8 left-[23px] top-8 w-px bg-slate-200" />
-
-              <div className="space-y-7">
-                {roadmap.map((item) => (
-                  <div
-                    key={item.step}
-                    className="relative flex gap-4"
-                  >
-                    {/* Step number */}
-                    <div
-                      className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xs font-bold ${
-                        item.status === "completed"
-                          ? "bg-emerald-100 text-emerald-600"
-                          : item.status === "current"
-                          ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                          : "bg-slate-100 text-slate-400"
-                      }`}
-                    >
-                      {item.status === "completed" ? (
-                        <FiCheckCircle size={20} />
-                      ) : item.status === "locked" ? (
-                        <FiLock size={17} />
-                      ) : (
-                        item.step
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div
-                      className={`flex-1 rounded-2xl border p-5 ${
-                        item.status === "current"
-                          ? "border-blue-200 bg-blue-50/40"
-                          : "border-slate-100 bg-slate-50/40"
-                      }`}
-                    >
-                      <div className="flex flex-col justify-between gap-3 sm:flex-row">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-bold">{item.title}</h4>
-
-                            {item.status === "current" && (
-                              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold uppercase text-blue-600">
-                                In Progress
-                              </span>
-                            )}
-
-                            {item.status === "completed" && (
-                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-600">
-                                Completed
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="mt-2 text-sm leading-6 text-slate-500">
-                            {item.description}
-                          </p>
-                        </div>
-
-                        <div className="flex h-fit shrink-0 items-center gap-1 text-xs text-slate-400">
-                          <FiClock size={13} />
-                          {item.duration}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {item.skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-
-                      {item.status === "current" && (
-                        <button className="mt-5 flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700">
-                          Continue Learning
-                          <FiChevronRight size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Skills */}
-          <aside className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <FiCode size={20} />
-                </div>
-
-                <div>
-                  <h3 className="font-bold">Skill Analysis</h3>
-                  <p className="text-xs text-slate-500">
-                    Based on your resume
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-5">
-                {skills.map((skill) => (
-                  <div key={skill.name}>
-                    <div className="mb-2 flex justify-between">
-                      <span className="text-sm font-medium">
-                        {skill.name}
-                      </span>
-
-                      <span className="text-xs font-semibold text-slate-500">
-                        {skill.level}%
-                      </span>
-                    </div>
-
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className={`h-full rounded-full ${
-                          skill.level >= 80
-                            ? "bg-emerald-500"
-                            : skill.level >= 60
-                            ? "bg-blue-500"
-                            : "bg-amber-500"
-                        }`}
-                        style={{ width: `${skill.level}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Recommended resources */}
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-                  <FiBookOpen size={20} />
-                </div>
-
-                <div>
-                  <h3 className="font-bold">Recommended Learning</h3>
-                  <p className="text-xs text-slate-500">
-                    Improve your weak areas
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {[
-                  {
-                    title: "Next.js Fundamentals",
-                    time: "4h 20m",
-                  },
-                  {
-                    title: "Advanced TypeScript",
-                    time: "3h 10m",
-                  },
-                  {
-                    title: "React Performance",
-                    time: "2h 45m",
-                  },
-                ].map((course) => (
-                  <div
-                    key={course.title}
-                    className="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-blue-100 hover:bg-blue-50/50"
-                  >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-                      <FiPlayCircle size={17} />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold">
-                        {course.title}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-400">
-                        {course.time}
-                      </p>
-                    </div>
-
-                    <FiChevronRight
-                      size={15}
-                      className="text-slate-300 transition group-hover:text-blue-500"
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* AI insight */}
-            <section className="rounded-3xl bg-slate-950 p-6 text-white">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                  <FiTarget size={19} />
-                </div>
-
-                <h3 className="font-bold">AI Career Insight</h3>
-              </div>
-
-              <p className="mt-4 text-sm leading-6 text-slate-300">
-                Your biggest opportunity right now is improving your Next.js
-                skills. It could increase your Frontend Developer job-match
-                score from <b className="text-white">94%</b> to around{" "}
-                <b className="text-emerald-400">97%</b>.
-              </p>
-
-              <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-xs font-bold text-slate-900 hover:bg-slate-100">
-                View Skill Plan
-                <FiChevronRight size={14} />
-              </button>
-            </section>
-          </aside>
-        </div>
-      </main>
-    </div>
+  return skills.filter((skill) =>
+    lower.includes(skill.toLowerCase())
   );
 }
 
-export default CareerRoadmap;
+export default function CareerRoadmap({
+  onBack,
+}: CareerRoadmapProps) {
+  const [resumeText, setResumeText] = useState<string>("");
+  const [expanded, setExpanded] = useState<number>(0);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  const loadResume = () => {
+    setRefreshing(true);
+
+    const text = localStorage.getItem("resumeText") || "";
+
+    setResumeText(text);
+
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 300);
+  };
+
+  useEffect(() => {
+    loadResume();
+
+    const handleUpdate = () => {
+      loadResume();
+    };
+
+    window.addEventListener(
+      "careerlens-dashboard-update",
+      handleUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "careerlens-dashboard-update",
+        handleUpdate
+      );
+    };
+  }, []);
+
+  const track = useMemo(
+    () => detectTrack(resumeText),
+    [resumeText]
+  );
+
+  const career = careerTracks[track];
+
+  const currentSkills = useMemo(
+    () => extractSkills(resumeText),
+    [resumeText]
+  );
+
+  const roadmapProgress = Math.min(
+    95,
+    Math.max(
+      10,
+      Math.round(
+        (currentSkills.length /
+          Math.max(career.steps.length * 3, 1)) *
+          100
+      )
+    )
+  );
+
+  if (!resumeText.trim()) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="mx-auto max-w-6xl">
+          <button
+            onClick={onBack}
+            className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600"
+          >
+            <FiArrowLeft />
+            Back to Dashboard
+          </button>
+
+          <div className="rounded-3xl bg-white p-10 text-center shadow-sm">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              <FiMap size={30} />
+            </div>
+
+            <h1 className="text-2xl font-bold text-slate-900">
+              Career Roadmap
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-lg text-slate-500">
+              Upload and analyze your resume first. CareerLens will
+              create a roadmap based on your current skills.
+            </p>
+
+            <button
+              onClick={onBack}
+              className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+            >
+              Go to Resume Analyzer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-6xl">
+
+        {/* HEADER */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <button
+              onClick={onBack}
+              className="mb-3 flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600"
+            >
+              <FiArrowLeft />
+              Dashboard
+            </button>
+
+            <h1 className="text-3xl font-bold text-slate-900">
+              Career Roadmap
+            </h1>
+
+            <p className="mt-1 text-slate-500">
+              A personalized career path generated from your resume.
+            </p>
+          </div>
+
+          <button
+            onClick={loadResume}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            <FiRefreshCw
+              className={refreshing ? "animate-spin" : ""}
+            />
+            Refresh Roadmap
+          </button>
+        </div>
+
+        {/* CAREER HERO */}
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white md:p-8">
+          <div className="flex flex-col justify-between gap-6 md:flex-row">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
+                <FiTarget />
+                Recommended Career
+              </div>
+
+              <h2 className="text-3xl font-bold">
+                {career.title}
+              </h2>
+
+              <p className="mt-2 max-w-2xl text-blue-100">
+                {career.description}
+              </p>
+            </div>
+
+            <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-2xl bg-white/15">
+              <span className="text-3xl font-bold">
+                {roadmapProgress}%
+              </span>
+
+              <span className="text-xs text-blue-100">
+                Progress
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <div className="mb-2 flex justify-between text-xs text-blue-100">
+              <span>Career readiness</span>
+              <span>{roadmapProgress}%</span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-white transition-all"
+                style={{
+                  width: `${roadmapProgress}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* CURRENT SKILLS */}
+        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
+              <FiCheckCircle />
+            </div>
+
+            <div>
+              <h2 className="font-semibold text-slate-900">
+                Your Current Skills
+              </h2>
+
+              <p className="text-sm text-slate-500">
+                Detected from your uploaded resume
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {currentSkills.length > 0 ? (
+              currentSkills.map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700"
+                >
+                  ✓ {skill}
+                </span>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">
+                No predefined skills detected. Add more technical
+                skills to your resume.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ROADMAP */}
+        <div className="mt-6">
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-slate-900">
+              Your Learning Roadmap
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Follow these steps to become job-ready.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {career.steps.map((step, index) => {
+              const isOpen = expanded === index;
+
+              return (
+                <div
+                  key={step.title}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <button
+                    onClick={() =>
+                      setExpanded(isOpen ? -1 : index)
+                    }
+                    className="flex w-full items-center gap-4 p-5 text-left"
+                  >
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
+                      {index + 1}
+                    </div>
+
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-slate-900">
+                        {step.title}
+                      </h3>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        {step.description}
+                      </p>
+                    </div>
+
+                    {isOpen ? (
+                      <FiChevronUp className="text-slate-400" />
+                    ) : (
+                      <FiChevronDown className="text-slate-400" />
+                    )}
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-t border-slate-100 px-5 pb-6 pt-5">
+                      <div className="grid gap-5 md:grid-cols-2">
+
+                        {/* SKILLS */}
+                        <div>
+                          <div className="mb-3 flex items-center gap-2">
+                            <FiCode className="text-blue-600" />
+
+                            <h4 className="font-semibold text-slate-900">
+                              Skills to Learn
+                            </h4>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            {step.skills.map((skill) => {
+                              const alreadyHave =
+                                currentSkills.some(
+                                  (item) =>
+                                    item.toLowerCase() ===
+                                    skill.toLowerCase()
+                                );
+
+                              return (
+                                <span
+                                  key={skill}
+                                  className={`rounded-lg px-3 py-2 text-xs font-medium ${
+                                    alreadyHave
+                                      ? "bg-green-50 text-green-700"
+                                      : "bg-blue-50 text-blue-700"
+                                  }`}
+                                >
+                                  {alreadyHave ? "✓ " : ""}
+                                  {skill}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* RESOURCES */}
+                        <div>
+                          <div className="mb-3 flex items-center gap-2">
+                            <FiBookOpen className="text-purple-600" />
+
+                            <h4 className="font-semibold text-slate-900">
+                              Recommended Learning
+                            </h4>
+                          </div>
+
+                          <div className="space-y-2">
+                            {step.resources.map((resource) => (
+                              <div
+                                key={resource}
+                                className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600"
+                              >
+                                {resource}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* FINAL CTA */}
+        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="font-bold text-slate-900">
+                Keep improving your profile
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Add missing skills, build projects and practice
+                interviews to improve your job match score.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-blue-600">
+              <FiTrendingUp />
+
+              <span className="text-sm font-semibold">
+                Keep growing
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
