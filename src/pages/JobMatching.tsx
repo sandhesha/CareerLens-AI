@@ -1,129 +1,470 @@
-import {
+import React, {
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
-
 import {
-  FiArrowLeft,
-  FiBriefcase,
-  FiCheckCircle,
-  FiExternalLink,
-  FiMapPin,
-  FiRefreshCw,
-  FiSearch,
-  FiTarget,
-  FiTrendingUp,
-  FiXCircle,
-} from "react-icons/fi";
+  ArrowLeft,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  Search,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 
-import {
-  calculateJobMatches,
-  getStoredResume,
-} from "../services/careerService";
-
-import type { Job } from "../types/career";
+import JobCard from "../components/JobCard";
 
 interface JobMatchingProps {
-  onBack: () => void;
+  onBack?: () => void;
+}
+
+interface Job {
+  id: number;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  experience: string;
+  salary: string;
+  skills: string[];
+  description: string;
+  match: number;
+  matchedSkills: string[];
+  missingSkills: string[];
 }
 
 /*
- * =====================================================
- * JOB URL
- * =====================================================
- *
- * These are search pages for now.
- * Later we can connect real job APIs.
- */
+|--------------------------------------------------------------------------
+| JOB DATABASE
+|--------------------------------------------------------------------------
+*/
 
-function getJobSearchUrl(job: Job): string {
-  const query = encodeURIComponent(
-    `${job.title} ${job.location}`
+const JOB_DATABASE: Omit<
+  Job,
+  "match" | "matchedSkills" | "missingSkills"
+>[] = [
+  {
+    id: 1,
+    title: "Frontend Developer Intern",
+    company: "TechNova",
+    location: "Bangalore, India",
+    type: "Internship",
+    experience: "0–1 years",
+    salary: "₹15K–₹25K/month",
+    skills: [
+      "React",
+      "TypeScript",
+      "JavaScript",
+      "HTML",
+      "CSS",
+      "Git",
+    ],
+    description:
+      "Build responsive web applications and reusable frontend components.",
+  },
+
+  {
+    id: 2,
+    title: "AI/ML Engineer Intern",
+    company: "NeuralWorks",
+    location: "Bangalore, India",
+    type: "Internship",
+    experience: "0–1 years",
+    salary: "₹20K–₹30K/month",
+    skills: [
+      "Python",
+      "Machine Learning",
+      "NumPy",
+      "Pandas",
+      "TensorFlow",
+      "SQL",
+    ],
+    description:
+      "Work on machine learning models, data preprocessing and AI applications.",
+  },
+
+  {
+    id: 3,
+    title: "Full Stack Developer Intern",
+    company: "CodeCraft",
+    location: "Remote",
+    type: "Remote",
+    experience: "0–1 years",
+    salary: "₹18K–₹28K/month",
+    skills: [
+      "React",
+      "TypeScript",
+      "Node.js",
+      "Express",
+      "MongoDB",
+      "Git",
+    ],
+    description:
+      "Develop modern full-stack applications using React and Node.js.",
+  },
+
+  {
+    id: 4,
+    title: "Data Analyst Intern",
+    company: "DataSphere",
+    location: "Hyderabad, India",
+    type: "Internship",
+    experience: "0–1 years",
+    salary: "₹15K–₹25K/month",
+    skills: [
+      "Python",
+      "SQL",
+      "Excel",
+      "Power BI",
+      "Tableau",
+      "Pandas",
+    ],
+    description:
+      "Analyze business data and build dashboards for data-driven decisions.",
+  },
+
+  {
+    id: 5,
+    title: "AI Application Developer",
+    company: "FutureAI",
+    location: "Remote",
+    type: "Remote",
+    experience: "0–2 years",
+    salary: "₹25K–₹40K/month",
+    skills: [
+      "Python",
+      "React",
+      "Generative AI",
+      "APIs",
+      "FastAPI",
+      "Machine Learning",
+    ],
+    description:
+      "Build AI-powered applications using modern LLM and web technologies.",
+  },
+
+  {
+    id: 6,
+    title: "Python Developer Intern",
+    company: "PyTech",
+    location: "Mangalore, India",
+    type: "Internship",
+    experience: "0–1 years",
+    salary: "₹12K–₹22K/month",
+    skills: [
+      "Python",
+      "FastAPI",
+      "Flask",
+      "SQL",
+      "Git",
+      "REST API",
+    ],
+    description:
+      "Develop backend APIs and Python-based web applications.",
+  },
+
+  {
+    id: 7,
+    title: "Machine Learning Engineer",
+    company: "VisionLabs",
+    location: "Pune, India",
+    type: "Full-time",
+    experience: "0–2 years",
+    salary: "₹5–8 LPA",
+    skills: [
+      "Python",
+      "Machine Learning",
+      "Deep Learning",
+      "TensorFlow",
+      "PyTorch",
+      "SQL",
+    ],
+    description:
+      "Develop and deploy machine learning and deep learning solutions.",
+  },
+
+  {
+    id: 8,
+    title: "Software Engineer",
+    company: "InnovateX",
+    location: "Bangalore, India",
+    type: "Full-time",
+    experience: "0–2 years",
+    salary: "₹6–10 LPA",
+    skills: [
+      "JavaScript",
+      "TypeScript",
+      "React",
+      "Python",
+      "SQL",
+      "Git",
+    ],
+    description:
+      "Build scalable software applications and collaborate with engineering teams.",
+  },
+];
+
+/*
+|--------------------------------------------------------------------------
+| NORMALIZE SKILL
+|--------------------------------------------------------------------------
+*/
+
+function normalizeSkill(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/node\.js/g, "nodejs")
+    .replace(/machine learning/g, "machinelearning")
+    .replace(/deep learning/g, "deeplearning")
+    .replace(/generative ai/g, "generativeai")
+    .replace(/rest api/g, "restapi")
+    .replace(/[^a-z0-9+#]/g, "")
+    .trim();
+}
+
+/*
+|--------------------------------------------------------------------------
+| EXTRACT SKILLS FROM RESUME
+|--------------------------------------------------------------------------
+*/
+
+function extractResumeSkills(resume: string): string[] {
+  const skills = [
+    "Python",
+    "Java",
+    "JavaScript",
+    "TypeScript",
+    "React",
+    "Node.js",
+    "HTML",
+    "CSS",
+    "SQL",
+    "MongoDB",
+    "MySQL",
+    "Machine Learning",
+    "Deep Learning",
+    "TensorFlow",
+    "PyTorch",
+    "NumPy",
+    "Pandas",
+    "Excel",
+    "Power BI",
+    "Tableau",
+    "Git",
+    "GitHub",
+    "FastAPI",
+    "Flask",
+    "REST API",
+    "Generative AI",
+    "APIs",
+    "Express",
+  ];
+
+  const normalizedResume = normalizeSkill(resume);
+
+  return skills.filter((skill) =>
+    normalizedResume.includes(normalizeSkill(skill))
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| CALCULATE MATCH
+|--------------------------------------------------------------------------
+*/
+
+function calculateJobMatch(
+  job: (typeof JOB_DATABASE)[number],
+  resumeSkills: string[]
+): Job {
+  const matchedSkills = job.skills.filter((jobSkill) =>
+    resumeSkills.some(
+      (resumeSkill) =>
+        normalizeSkill(resumeSkill) ===
+        normalizeSkill(jobSkill)
+    )
   );
 
-  return `https://www.linkedin.com/jobs/search/?keywords=${query}`;
+  const missingSkills = job.skills.filter(
+    (skill) => !matchedSkills.includes(skill)
+  );
+
+  const match = Math.round(
+    (matchedSkills.length / job.skills.length) * 100
+  );
+
+  return {
+    ...job,
+    match,
+    matchedSkills,
+    missingSkills,
+  };
 }
 
 /*
- * =====================================================
- * COMPONENT
- * =====================================================
- */
+|--------------------------------------------------------------------------
+| COMPONENT
+|--------------------------------------------------------------------------
+*/
 
-export default function JobMatching({
+const JobMatching: React.FC<JobMatchingProps> = ({
   onBack,
-}: JobMatchingProps) {
+}) => {
+  const [resumeText, setResumeText] = useState("");
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [userSkills, setUserSkills] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
-  const [refreshing, setRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] =
+    useState(false);
+  const [error, setError] = useState<string | null>(
+    null
+  );
 
   /*
-   * ===================================================
-   * LOAD RESUME + CALCULATE MATCHES
-   * ===================================================
+   * ------------------------------------------------------
+   * LOAD RESUME + CALCULATE JOBS
+   * ------------------------------------------------------
    */
 
-  const loadResume = useCallback(() => {
-    setRefreshing(true);
+  const fetchMatches = useCallback(() => {
+    setIsRefreshing(true);
+    setError(null);
 
-    const resume = getStoredResume();
+    /*
+     * Always read the latest resume.
+     */
 
-    if (resume) {
-      const matches = calculateJobMatches(resume);
+    const latestResume =
+      localStorage.getItem("resumeText") || "";
+
+    setResumeText(latestResume);
+
+    /*
+     * No resume
+     */
+
+    if (!latestResume.trim()) {
+      setUserSkills([]);
+      setJobs([]);
+      setIsRefreshing(false);
+      return;
+    }
+
+    try {
+      /*
+       * Extract current resume skills.
+       */
+
+      const detectedSkills =
+        extractResumeSkills(latestResume);
+
+      setUserSkills(detectedSkills);
+
+      /*
+       * Calculate matches.
+       */
+
+      const matches = JOB_DATABASE.map((job) =>
+        calculateJobMatch(
+          job,
+          detectedSkills
+        )
+      ).sort((a, b) => b.match - a.match);
 
       setJobs(matches);
-    } else {
+
+      /*
+       * Save dashboard count.
+       */
+
+      const matchCount = matches.filter(
+        (job) => job.match >= 50
+      ).length;
+
+      localStorage.setItem(
+        "jobMatches",
+        matchCount.toString()
+      );
+
+      /*
+       * Notify dashboard.
+       */
+
+      window.dispatchEvent(
+        new Event("careerlens-dashboard-update")
+      );
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        "Unable to calculate job matches."
+      );
+
       setJobs([]);
     }
 
+    /*
+     * Small loading effect.
+     */
+
     window.setTimeout(() => {
-      setRefreshing(false);
-    }, 300);
+      setIsRefreshing(false);
+    }, 500);
   }, []);
 
   /*
-   * ===================================================
+   * ------------------------------------------------------
    * INITIAL LOAD
-   * ===================================================
+   * ------------------------------------------------------
    */
 
   useEffect(() => {
-    loadResume();
+  fetchMatches();
 
-    const handleResumeUpdate = () => {
-      loadResume();
-    };
+  const handleUpdate = () => {
+    fetchMatches();
+  };
 
-    window.addEventListener(
+  const handleSessionReset = () => {
+    setResumeText("");
+    setJobs([]);
+    setUserSkills([]);
+    setSearch("");
+    setFilter("All");
+    setError(null);
+    setIsRefreshing(false);
+  };
+
+  window.addEventListener(
+    "careerlens-dashboard-update",
+    handleUpdate
+  );
+
+  window.addEventListener(
+    "careerlens-session-reset",
+    handleSessionReset
+  );
+
+  return () => {
+    window.removeEventListener(
       "careerlens-dashboard-update",
-      handleResumeUpdate
+      handleUpdate
     );
 
-    window.addEventListener(
-      "storage",
-      handleResumeUpdate
+    window.removeEventListener(
+      "careerlens-session-reset",
+      handleSessionReset
     );
-
-    return () => {
-      window.removeEventListener(
-        "careerlens-dashboard-update",
-        handleResumeUpdate
-      );
-
-      window.removeEventListener(
-        "storage",
-        handleResumeUpdate
-      );
-    };
-  }, [loadResume]);
+  };
+}, [fetchMatches]);
 
   /*
-   * ===================================================
+   * ------------------------------------------------------
    * FILTER JOBS
-   * ===================================================
+   * ------------------------------------------------------
    */
 
   const filteredJobs = useMemo(() => {
@@ -144,9 +485,7 @@ export default function JobMatching({
           .toLowerCase()
           .includes(query) ||
         job.skills.some((skill) =>
-          skill
-            .toLowerCase()
-            .includes(query)
+          skill.toLowerCase().includes(query)
         );
 
       const matchesFilter =
@@ -159,56 +498,51 @@ export default function JobMatching({
           job.match >= 70);
 
       return (
-        matchesSearch &&
-        matchesFilter
+        matchesSearch && matchesFilter
       );
     });
   }, [jobs, search, filter]);
 
   /*
-   * ===================================================
+   * ------------------------------------------------------
    * STATISTICS
-   * ===================================================
+   * ------------------------------------------------------
    */
 
   const totalMatches = jobs.filter(
     (job) => job.match >= 50
   ).length;
 
-  const topMatch = jobs[0];
+  const bestMatch =
+    jobs.length > 0
+      ? jobs[0].match
+      : 0;
 
   /*
-   * ===================================================
-   * STORED RESUME
-   * ===================================================
-   */
-
-  const resume = getStoredResume();
-
-  /*
-   * ===================================================
+   * ------------------------------------------------------
    * NO RESUME
-   * ===================================================
+   * ------------------------------------------------------
    */
 
-  if (!resume) {
+  if (!resumeText.trim()) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="mx-auto max-w-6xl">
 
-          <button
-            type="button"
-            onClick={onBack}
-            className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600"
-          >
-            <FiArrowLeft />
-            Back to Dashboard
-          </button>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600"
+            >
+              <ArrowLeft size={17} />
+              Back to Dashboard
+            </button>
+          )}
 
           <div className="rounded-3xl bg-white p-10 text-center shadow-sm">
 
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-              <FiTarget size={30} />
+              <Target size={30} />
             </div>
 
             <h1 className="text-2xl font-bold text-slate-900">
@@ -216,19 +550,20 @@ export default function JobMatching({
             </h1>
 
             <p className="mx-auto mt-3 max-w-lg text-slate-500">
-              Upload and analyze your resume
-              first. CareerLens will then use
-              your detected skills to calculate
-              job compatibility.
+              Upload a resume in the Resume
+              Analyzer. CareerLens will detect
+              your skills and calculate suitable
+              job matches.
             </p>
 
-            <button
-              type="button"
-              onClick={onBack}
-              className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
-            >
-              Go to Resume Analyzer
-            </button>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+              >
+                Go to Resume Analyzer
+              </button>
+            )}
 
           </div>
         </div>
@@ -237,9 +572,9 @@ export default function JobMatching({
   }
 
   /*
-   * ===================================================
+   * ------------------------------------------------------
    * MAIN PAGE
-   * ===================================================
+   * ------------------------------------------------------
    */
 
   return (
@@ -249,18 +584,19 @@ export default function JobMatching({
 
         {/* HEADER */}
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
           <div>
 
-            <button
-              type="button"
-              onClick={onBack}
-              className="mb-3 flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600"
-            >
-              <FiArrowLeft />
-              Dashboard
-            </button>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="mb-3 flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600"
+              >
+                <ArrowLeft size={16} />
+                Dashboard
+              </button>
+            )}
 
             <h1 className="text-3xl font-bold text-slate-900">
               Job Matching
@@ -268,37 +604,55 @@ export default function JobMatching({
 
             <p className="mt-1 text-slate-500">
               Personalized opportunities based
-              on your resume skills.
+              on the skills detected from your
+              resume.
             </p>
 
           </div>
 
           <button
-            type="button"
-            onClick={loadResume}
-            disabled={refreshing}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
+            onClick={fetchMatches}
+            disabled={isRefreshing}
+            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
           >
-            <FiRefreshCw
+            <RefreshCw
+              size={17}
               className={
-                refreshing
+                isRefreshing
                   ? "animate-spin"
                   : ""
               }
             />
 
-            Refresh Matches
+            {isRefreshing
+              ? "Refreshing..."
+              : "Refresh Matches"}
           </button>
 
         </div>
+
+        {/* ERROR */}
+
+        {error && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+
+            <AlertCircle
+              size={20}
+              className="mt-0.5 shrink-0"
+            />
+
+            <p className="text-sm font-medium">
+              {error}
+            </p>
+
+          </div>
+        )}
 
         {/* STATS */}
 
         <div className="grid gap-4 md:grid-cols-3">
 
-          {/* JOB MATCHES */}
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <div className="flex items-center justify-between">
 
@@ -306,12 +660,17 @@ export default function JobMatching({
                 Job Matches
               </p>
 
-              <FiTarget className="text-blue-600" />
+              <Target
+                size={20}
+                className="text-blue-600"
+              />
 
             </div>
 
             <p className="mt-3 text-3xl font-bold text-slate-900">
-              {totalMatches}
+              {isRefreshing
+                ? 0
+                : totalMatches}
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -320,9 +679,7 @@ export default function JobMatching({
 
           </div>
 
-          {/* SKILLS */}
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <div className="flex items-center justify-between">
 
@@ -330,16 +687,17 @@ export default function JobMatching({
                 Skills Detected
               </p>
 
-              <FiTrendingUp className="text-emerald-600" />
+              <TrendingUp
+                size={20}
+                className="text-emerald-600"
+              />
 
             </div>
 
             <p className="mt-3 text-3xl font-bold text-slate-900">
-              {new Set([
-                ...(resume.skills || []),
-                ...(resume.technicalSkills || []),
-                ...(resume.softSkills || []),
-              ]).size}
+              {isRefreshing
+                ? 0
+                : userSkills.length}
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -348,9 +706,7 @@ export default function JobMatching({
 
           </div>
 
-          {/* BEST MATCH */}
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <div className="flex items-center justify-between">
 
@@ -358,44 +714,46 @@ export default function JobMatching({
                 Best Match
               </p>
 
-              <FiCheckCircle className="text-green-600" />
+              <CheckCircle2
+                size={20}
+                className="text-green-600"
+              />
 
             </div>
 
             <p className="mt-3 text-3xl font-bold text-slate-900">
-              {topMatch?.match || 0}%
+              {isRefreshing
+                ? 0
+                : bestMatch}
+              %
             </p>
 
             <p className="mt-1 truncate text-sm text-slate-500">
-              {topMatch?.title || "No match"}
+              {jobs[0]?.title ||
+                "No match"}
             </p>
 
           </div>
 
         </div>
 
-        {/* RESUME SKILLS */}
+        {/* SKILLS */}
 
-        <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
           <h2 className="font-semibold text-slate-900">
             Skills Found in Your Resume
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          {userSkills.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">
+              No supported technical skills
+              were detected.
+            </p>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-2">
 
-            {[
-              ...(resume.skills || []),
-              ...(resume.technicalSkills || []),
-              ...(resume.softSkills || []),
-              ...(resume.interests || []),
-            ]
-              .filter(Boolean)
-              .filter(
-                (skill, index, array) =>
-                  array.indexOf(skill) === index
-              )
-              .map((skill) => (
+              {userSkills.map((skill) => (
                 <span
                   key={skill}
                   className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700"
@@ -404,24 +762,26 @@ export default function JobMatching({
                 </span>
               ))}
 
-          </div>
+            </div>
+          )}
 
         </div>
 
-        {/* SEARCH + FILTER */}
+        {/* SEARCH */}
 
         <div className="mt-6 flex flex-col gap-3 md:flex-row">
 
           <div className="flex flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
 
-            <FiSearch className="text-slate-400" />
+            <Search
+              size={18}
+              className="text-slate-400"
+            />
 
             <input
               value={search}
-              onChange={(event) =>
-                setSearch(
-                  event.target.value
-                )
+              onChange={(e) =>
+                setSearch(e.target.value)
               }
               placeholder="Search jobs, companies or skills..."
               className="w-full bg-transparent text-sm outline-none"
@@ -431,8 +791,8 @@ export default function JobMatching({
 
           <select
             value={filter}
-            onChange={(event) =>
-              setFilter(event.target.value)
+            onChange={(e) =>
+              setFilter(e.target.value)
             }
             className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
           >
@@ -444,182 +804,58 @@ export default function JobMatching({
 
         </div>
 
-        {/* JOB CARDS */}
+        {/* JOBS */}
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        {isRefreshing ? (
 
-          {filteredJobs.map((job) => (
+          <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-20">
 
-            <div
-              key={job.id}
-              className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
+            <RefreshCw
+              size={32}
+              className="animate-spin text-blue-600"
+            />
 
-              {/* TITLE */}
+            <p className="mt-4 font-medium text-slate-600">
+              Finding your best job matches...
+            </p>
 
-              <div className="flex items-start justify-between gap-4">
+          </div>
 
-                <div className="flex gap-4">
+        ) : filteredJobs.length > 0 ? (
 
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                    <FiBriefcase size={22} />
-                  </div>
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
 
-                  <div>
+            {filteredJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                title={job.title}
+                company={job.company}
+                location={job.location}
+                type={job.type}
+                salary={job.salary}
+                match={job.match}
+                description={job.description}
+                skills={job.skills}
+              />
+            ))}
 
-                    <h2 className="font-bold text-slate-900">
-                      {job.title}
-                    </h2>
+          </div>
 
-                    <p className="text-sm text-slate-500">
-                      {job.company}
-                    </p>
+        ) : (
 
-                  </div>
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
 
-                </div>
-
-                {/* MATCH */}
-
-                <div
-                  className={`rounded-full px-3 py-1 text-sm font-bold ${
-                    job.match >= 80
-                      ? "bg-green-50 text-green-700"
-                      : job.match >= 60
-                        ? "bg-yellow-50 text-yellow-700"
-                        : "bg-red-50 text-red-700"
-                  }`}
-                >
-                  {job.match}%
-                </div>
-
-              </div>
-
-              {/* META */}
-
-              <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-500">
-
-                <span className="flex items-center gap-1">
-                  <FiMapPin />
-                  {job.location}
-                </span>
-
-                <span>•</span>
-
-                <span>
-                  {job.type}
-                </span>
-
-                <span>•</span>
-
-                <span>
-                  {job.salary}
-                </span>
-
-              </div>
-
-              {/* DESCRIPTION */}
-
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                {job.description}
-              </p>
-
-              {/* REQUIRED SKILLS */}
-
-              <div className="mt-4">
-
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Required Skills
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-
-                  {job.skills.map(
-                    (skill) => {
-
-                      const matched =
-                        job.matchedSkills.includes(
-                          skill
-                        );
-
-                      return (
-                        <span
-                          key={skill}
-                          className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
-                            matched
-                              ? "bg-green-50 text-green-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {matched
-                            ? "✓ "
-                            : ""}
-                          {skill}
-                        </span>
-                      );
-                    }
-                  )}
-
-                </div>
-
-              </div>
-
-              {/* MISSING SKILLS */}
-
-              {job.missingSkills.length >
-                0 && (
-
-                <div className="mt-4 rounded-xl bg-orange-50 p-3">
-
-                  <p className="text-xs font-semibold text-orange-700">
-                    Skills to improve
-                  </p>
-
-                  <p className="mt-1 text-xs text-orange-600">
-                    {job.missingSkills.join(
-                      ", "
-                    )}
-                  </p>
-
-                </div>
-
-              )}
-
-              {/* SEARCH JOB */}
-
-              <a
-                href={getJobSearchUrl(job)}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Search Jobs
-                <FiExternalLink />
-              </a>
-
-            </div>
-
-          ))}
-
-        </div>
-
-        {/* NO RESULTS */}
-
-        {filteredJobs.length === 0 && (
-
-          <div className="mt-6 rounded-2xl bg-white p-10 text-center">
-
-            <FiXCircle
-              size={35}
+            <Target
+              size={40}
               className="mx-auto text-slate-400"
             />
 
-            <h3 className="mt-3 font-semibold text-slate-900">
+            <h3 className="mt-4 font-semibold text-slate-900">
               No matching jobs found
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
-              Try another search or match
+              Try changing your search or
               filter.
             </p>
 
@@ -628,7 +864,8 @@ export default function JobMatching({
         )}
 
       </div>
-
     </div>
   );
-}
+};
+
+export default JobMatching;

@@ -540,34 +540,48 @@ function Interview({ onBack }: InterviewProps) {
       timerRef.current = null;
     }
   };
-
+  const notifyClient = () => {
+  window.dispatchEvent(
+    new CustomEvent("careerlens-client-notification", {
+      detail: {
+        type: "interview_submitted",
+        message: "Interview submitted successfully.",
+        time: new Date().toISOString(),
+      },
+    })
+  );
+};
+  
   /* =====================================================
      SUBMIT ANSWER
   ===================================================== */
 
   const submitAnswer = () => {
-    if (!answer.trim()) {
-      return;
-    }
+  if (!answer.trim()) {
+    return;
+  }
 
-    stopRecording();
+  stopRecording();
 
-    const score = evaluateAnswer(
-      answer,
-      currentQuestion,
-      resumeText
-    );
+  const score = evaluateAnswer(
+    answer,
+    currentQuestion,
+    resumeText
+  );
 
-    setQuestionScores((previous) => {
-      const updated = [...previous];
+  setQuestionScores((previous) => {
+    const updated = [...previous];
 
-      updated[currentQuestion] = score;
+    updated[currentQuestion] = score;
 
-      return updated;
-    });
+    return updated;
+  });
 
-    setSubmitted(true);
-  };
+  setSubmitted(true);
+
+  // Notify client
+  notifyClient();
+};
 
   /* =====================================================
      NEXT QUESTION
@@ -620,11 +634,7 @@ function Interview({ onBack }: InterviewProps) {
        * Save actual score to dashboard.
        */
 
-      localStorage.setItem(
-        "interviewScore",
-        totalScore.toString()
-      );
-
+      setFinalScore(totalScore);
       /*
        * Notify dashboard.
        */
@@ -634,6 +644,17 @@ function Interview({ onBack }: InterviewProps) {
           "careerlens-dashboard-update"
         )
       );
+      window.dispatchEvent(
+        new CustomEvent(
+          "careerlens-client-notification",
+          {
+            detail: {
+              message:
+                "Your interview has been submitted successfully.",
+              },
+    }
+  )
+);
 
       setCompleted(true);
 
@@ -822,25 +843,22 @@ function Interview({ onBack }: InterviewProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setCurrentQuestion(0);
-                  setAnswer("");
-                  setTime(0);
-                  setSubmitted(false);
-                  setCompleted(false);
-                  setQuestionScores([]);
-                  setFinalScore(0);
+  setCurrentQuestion(0);
+  setAnswer("");
+  setTime(0);
+  setSubmitted(false);
+  setCompleted(false);
+  setQuestionScores([]);
+  setFinalScore(0);
 
-                  localStorage.setItem(
-                    "interviewScore",
-                    "0"
-                  );
+  localStorage.removeItem("interviewScore");
 
-                  window.dispatchEvent(
-                    new CustomEvent(
-                      "careerlens-dashboard-update"
-                    )
-                  );
-                }}
+  window.dispatchEvent(
+    new CustomEvent(
+      "careerlens-dashboard-update"
+    )
+  );
+}}
                 className="rounded-xl border border-slate-700 px-7 py-3 font-semibold text-slate-300 transition hover:bg-slate-800"
               >
                 Restart Interview

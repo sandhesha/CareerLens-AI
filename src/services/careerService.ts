@@ -372,7 +372,9 @@ export function generateCareerRoadmap(
 
 export function getStoredResume(): ResumeProfile | null {
   try {
-    const stored = localStorage.getItem("careerlens_resume");
+    const stored = localStorage.getItem(
+      "careerlens_resume"
+    );
 
     if (!stored) {
       return null;
@@ -384,9 +386,76 @@ export function getStoredResume(): ResumeProfile | null {
   }
 }
 
-export function saveResume(resume: ResumeProfile): void {
+export function saveResume(
+  resume: ResumeProfile
+): void {
   localStorage.setItem(
     "careerlens_resume",
     JSON.stringify(resume)
   );
+}
+export interface ResumeAnalysisRecord {
+  id: string;
+  filename: string;
+  score: number;
+  skills: number;
+  jobMatches: number;
+  analyzedAt: string;
+  resume: ResumeProfile;
+}
+
+const RESUME_HISTORY_KEY =
+  "careerlens_resume_history";
+
+export function getResumeHistory(): ResumeAnalysisRecord[] {
+  try {
+    const stored = localStorage.getItem(
+      RESUME_HISTORY_KEY
+    );
+
+    if (!stored) {
+      return [];
+    }
+
+    const parsed = JSON.parse(stored);
+
+    return Array.isArray(parsed)
+      ? parsed
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveResumeAnalysis(
+  record: ResumeAnalysisRecord
+): void {
+  const history = getResumeHistory();
+
+  localStorage.setItem(
+    RESUME_HISTORY_KEY,
+    JSON.stringify([
+      record,
+      ...history,
+    ])
+  );
+
+  // Keep the latest resume available
+  // for Job Matching, Interview and Roadmap.
+  localStorage.setItem(
+    "careerlens_resume",
+    JSON.stringify(record.resume)
+  );
+}
+
+export function clearResumeHistory(): void {
+  localStorage.removeItem(
+    RESUME_HISTORY_KEY
+  );
+}
+export function clearCurrentAnalysis(): void {
+  localStorage.removeItem("resumeScore");
+  localStorage.removeItem("interviewScore");
+  localStorage.removeItem("jobMatches");
+  localStorage.removeItem("skillsMatched");
 }

@@ -14,6 +14,13 @@ import StatCard from "../components/StatCard";
 import JobCard from "../components/JobCard";
 import ActivityCard from "../components/ActivityCard";
 
+// Added mock data to prevent TypeScript errors on ActivityCard
+const mockActivities = [
+  { id: 1, action: "Resume analyzed", time: "10:32 AM" },
+  { id: 2, action: "12 new jobs matched", time: "10:45 AM" },
+  { id: 3, action: "Career roadmap updated", time: "Yesterday" }
+];
+
 function Dashboard() {
   return (
     <div className="min-h-screen bg-[#f5f7fb]">
@@ -207,8 +214,8 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* ACTIVITY */}
-          <ActivityCard />
+          {/* ACTIVITY - Now passing the required props! */}
+          <ActivityCard activities={mockActivities} />
 
         </section>
 

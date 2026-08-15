@@ -364,24 +364,40 @@ export default function CareerRoadmap({
   };
 
   useEffect(() => {
+  loadResume();
+
+  const handleUpdate = () => {
     loadResume();
+  };
 
-    const handleUpdate = () => {
-      loadResume();
-    };
+  const handleSessionReset = () => {
+    setResumeText("");
+    setExpanded(0);
+    setRefreshing(false);
+  };
 
-    window.addEventListener(
+  window.addEventListener(
+    "careerlens-dashboard-update",
+    handleUpdate
+  );
+
+  window.addEventListener(
+    "careerlens-session-reset",
+    handleSessionReset
+  );
+
+  return () => {
+    window.removeEventListener(
       "careerlens-dashboard-update",
       handleUpdate
     );
 
-    return () => {
-      window.removeEventListener(
-        "careerlens-dashboard-update",
-        handleUpdate
-      );
-    };
-  }, []);
+    window.removeEventListener(
+      "careerlens-session-reset",
+      handleSessionReset
+    );
+  };
+}, []);
 
   const track = useMemo(
     () => detectTrack(resumeText),

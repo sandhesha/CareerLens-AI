@@ -11,7 +11,11 @@ import {
 } from "react-icons/fi";
 
 import { uploadResume } from "../services/api";
-import { saveResume } from "../services/careerService";
+import {
+  calculateJobMatches,
+  saveResume,
+  saveResumeAnalysis,
+} from "../services/careerService";
 
 interface ResumeAnalyzerProps {
   onBack?: () => void;
@@ -211,6 +215,7 @@ function ResumeAnalyzer({
         createResumeProfile(extractedText);
 
       saveResume(resumeProfile);
+      
 
       // =========================
       // SAVE RESUME INFORMATION
@@ -309,6 +314,15 @@ function ResumeAnalyzer({
         Math.max(Math.floor(score / 3), 5),
         30
       );
+      saveResumeAnalysis({
+        id: `${Date.now()}-${selectedFile.name}`,
+        filename: selectedFile.name,
+        score,
+        skills: skillsCount,
+        jobMatches: matches,
+        analyzedAt: new Date().toISOString(),
+        resume: resumeProfile,
+  });
 
       // =========================
       // UPDATE PAGE
@@ -324,20 +338,8 @@ function ResumeAnalyzer({
       // SAVE DASHBOARD VALUES
       // =========================
 
-      localStorage.setItem(
-        "resumeScore",
-        score.toString()
-      );
+      
 
-      localStorage.setItem(
-        "skillsMatched",
-        skillsCount.toString()
-      );
-
-      localStorage.setItem(
-        "jobMatches",
-        matches.toString()
-      );
 
       // =========================
       // UPDATE APP DASHBOARD
@@ -350,11 +352,22 @@ function ResumeAnalyzer({
       );
 
       // Notify other components
-      window.dispatchEvent(
-        new CustomEvent(
-          "careerlens-dashboard-update"
-        )
-      );
+      const matchedJobs =
+        calculateJobMatches(resumeProfile);
+
+window.dispatchEvent(
+  new CustomEvent(
+    "careerlens-dashboard-update",
+    {
+      detail: {
+        score,
+        skills: skillsCount,
+        jobMatches: matches,
+        jobs: matchedJobs.slice(0, 3),
+      },
+    }
+  )
+);
 
       console.log(
         "Resume analysis complete"
