@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from backend.services.resume_parser import extract_resume_text
+from backend.services.ai_service import AIService
 
 
 router = APIRouter(
@@ -11,7 +12,7 @@ router = APIRouter(
     tags=["Resume"],
 )
 
-# Vercel serverless functions can write to /tmp
+# Render allows temporary files in /tmp
 UPLOAD_DIR = "/tmp/careerlens_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -29,6 +30,7 @@ async def upload_resume(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, filename)
 
     try:
+        # Read uploaded file
         content = await file.read()
 
         if not content:
@@ -37,9 +39,11 @@ async def upload_resume(file: UploadFile = File(...)):
                 detail="The uploaded file is empty.",
             )
 
+        # Save temporarily
         with open(file_path, "wb") as buffer:
             buffer.write(content)
 
+        # Extract resume text
         text = extract_resume_text(file_path)
 
         if not text or not text.strip():
@@ -51,10 +55,17 @@ async def upload_resume(file: UploadFile = File(...)):
                 ),
             )
 
+        # Analyze resume using Gemini
+        analysis = await AIService.analyze_resume(text)
+
         return {
             "success": True,
             "filename": file.filename,
             "text": text,
+            "analysis": analysis,
+            "score": analysis.get("score"),
+            "skills": analysis.get("skills", []),
+            "feedback": analysis.get("feedback", ""),
         }
 
     except HTTPException:
@@ -69,6 +80,7 @@ async def upload_resume(file: UploadFile = File(...)):
         )
 
     finally:
+        # Remove temporary file
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
