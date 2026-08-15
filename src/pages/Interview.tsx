@@ -422,7 +422,7 @@ function Interview({ onBack }: InterviewProps) {
     );
 
   const questionData =
-    questions[currentQuestion];
+  questions[currentQuestion] ?? questions[0];
 
   /*
    * Get resume uploaded by Resume Analyzer.
