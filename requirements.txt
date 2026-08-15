@@ -2,6 +2,6 @@ fastapi
 uvicorn
 python-multipart
 pydantic
+pypdf
 google-genai
-google-genai
-google-genai
+python-dotenv
